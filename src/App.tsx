@@ -1,0 +1,161 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { DetailSheet } from './components/DetailSheet';
+import { useStore } from './data/store';
+import { kr } from './lib/format';
+import { activeItems, matchesFilter, soldItems, soldPrice, sum } from './lib/stats';
+import type { GroupFilter } from './lib/types';
+import { ActiveScreen } from './screens/ActiveScreen';
+import { emptyDraft, type NewDraft } from './screens/newDraft';
+import { NewScreen } from './screens/NewScreen';
+import { startSell, type LeftMode, type SellState } from './screens/sell';
+import { SoldScreen } from './screens/SoldScreen';
+import { TotalScreen } from './screens/TotalScreen';
+
+type Tab = 'new' | 'active' | 'sold' | 'total';
+
+const TABS: [Tab, string][] = [
+  ['new', 'New'],
+  ['active', 'Active'],
+  ['sold', 'Sold'],
+  ['total', 'Total'],
+];
+
+const LEFT_MODE_KEY = 'resale-prep:leftMode';
+
+function readLeftMode(): LeftMode {
+  try {
+    return localStorage.getItem(LEFT_MODE_KEY) === 'photo' ? 'photo' : 'days';
+  } catch {
+    return 'days';
+  }
+}
+
+export function App() {
+  const store = useStore();
+  const [tab, setTab] = useState<Tab>('new');
+  const [draft, setDraft] = useState<NewDraft>(emptyDraft);
+  const [activeFilter, setActiveFilter] = useState<GroupFilter>('all');
+  const [soldFilter, setSoldFilter] = useState<GroupFilter>('all');
+  const [leftMode, setLeftModeState] = useState<LeftMode>(readLeftMode);
+  const [sell, setSell] = useState<SellState | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<number | undefined>(undefined);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const flash = useCallback((msg: string) => {
+    setToast(msg);
+    window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToast(null), 1600);
+  }, []);
+  useEffect(() => () => window.clearTimeout(toastTimer.current), []);
+
+  const go = (t: Tab) => {
+    setTab(t);
+    setSell(null);
+    setDetailId(null);
+    scrollRef.current?.scrollTo({ top: 0 });
+  };
+
+  const setLeftMode = (m: LeftMode) => {
+    setLeftModeState(m);
+    try {
+      localStorage.setItem(LEFT_MODE_KEY, m);
+    } catch {
+      /* private mode — the choice just won't stick */
+    }
+  };
+
+  const closeDetail = useCallback(() => setDetailId(null), []);
+
+  const markSoldFromDetail = (id: string) => {
+    const item = store.items.find((i) => i.id === id);
+    if (!item) return;
+    setDetailId(null);
+    setTab('active');
+    if (!matchesFilter(item, activeFilter)) setActiveFilter('all');
+    setSell(startSell(item));
+  };
+
+  const revenue = sum(soldItems(store.items), soldPrice);
+  const hero: Record<Tab, string> = {
+    new: 'New listing',
+    active: `${activeItems(store.items).length} for sale`,
+    sold: `${soldItems(store.items).length} sold`,
+    total: kr(revenue),
+  };
+
+  return (
+    <div className="app">
+      <nav className="tabs">
+        {TABS.map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            className={`tab ${tab === id ? 'on' : ''}`}
+            aria-current={tab === id ? 'page' : undefined}
+            onClick={() => go(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+
+      <main className="scroll" ref={scrollRef}>
+        <div className="hero-row">
+          <h1 className={`hero ${tab === 'total' ? 'big' : ''}`} style={{ margin: 0 }}>
+            {store.loaded ? hero[tab] : ' '}
+          </h1>
+          {tab === 'active' && (
+            <div className="seg" role="group" aria-label="Left column">
+              {(['days', 'photo'] as const).map((m) => (
+                <button key={m} type="button" className={leftMode === m ? 'on' : ''} onClick={() => setLeftMode(m)}>
+                  {m === 'days' ? 'Days' : 'Photo'}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {!store.loaded ? (
+          <div className="loading">…</div>
+        ) : (
+          <>
+            {tab === 'new' && (
+              <NewScreen
+                draft={draft}
+                setDraft={setDraft}
+                onSaved={() => {
+                  setActiveFilter('all');
+                  go('active');
+                  flash('Saved →');
+                }}
+              />
+            )}
+            {tab === 'active' && (
+              <ActiveScreen
+                filter={activeFilter}
+                onFilter={setActiveFilter}
+                leftMode={leftMode}
+                sell={sell}
+                onSell={setSell}
+                onOpen={setDetailId}
+                onSold={(price) => flash(`+${kr(price)}`)}
+              />
+            )}
+            {tab === 'sold' && <SoldScreen filter={soldFilter} onFilter={setSoldFilter} onOpen={setDetailId} />}
+            {tab === 'total' && <TotalScreen onOpen={setDetailId} onToast={flash} />}
+          </>
+        )}
+        <div className="bottom-space" />
+      </main>
+
+      {detailId && <DetailSheet itemId={detailId} onClose={closeDetail} onMarkSold={markSoldFromDetail} />}
+      {toast && (
+        <div className="toast" role="status">
+          {toast}
+        </div>
+      )}
+    </div>
+  );
+}

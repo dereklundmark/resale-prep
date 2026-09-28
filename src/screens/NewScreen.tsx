@@ -1,0 +1,378 @@
+import { useRef, useState, type Dispatch, type SetStateAction } from 'react';
+import { GroupSelect } from '../components/GroupSelect';
+import { useStore } from '../data/store';
+import { CONDITIONS, PLATFORM_LABEL, PLATFORM_STRONG, PLATFORM_TEXT, PLATFORM_TINT, PLATFORMS } from '../lib/constants';
+import { digitsOnly, num } from '../lib/format';
+import { generateSuggestion } from '../lib/generate';
+import { newId } from '../lib/id';
+import { compressPhoto } from '../lib/image';
+import type { Condition, Platform } from '../lib/types';
+import { emptyDraft, releaseDraftPhotos, type DraftPhoto, type NewDraft } from './newDraft';
+
+const OTHER = '__other__';
+
+interface Props {
+  draft: NewDraft;
+  setDraft: Dispatch<SetStateAction<NewDraft>>;
+  onSaved(): void;
+}
+
+export function NewScreen({ draft, setDraft, onSaved }: Props) {
+  const { saveListing } = useStore();
+  const [busy, setBusy] = useState(false);
+  const addInput = useRef<HTMLInputElement>(null);
+  const replaceInput = useRef<HTMLInputElement>(null);
+
+  const set = (patch: Partial<NewDraft>) => setDraft((d) => ({ ...d, ...patch }));
+  const checked = PLATFORMS.filter((p) => draft.platforms[p]);
+
+  // ---- photos ----
+  const readFiles = async (files: FileList | null): Promise<DraftPhoto[]> => {
+    if (!files?.length) return [];
+    setBusy(true);
+    try {
+      return await Promise.all(
+        Array.from(files).map(async (f) => {
+          const { full, thumb } = await compressPhoto(f);
+          return { id: newId(), full, thumb, fullUrl: URL.createObjectURL(full), thumbUrl: URL.createObjectURL(thumb) };
+        }),
+      );
+    } catch {
+      set({ error: "Couldn't read that photo. Try another one." });
+      return [];
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const addPhotos = async (files: FileList | null) => {
+    const added = await readFiles(files);
+    if (added.length) setDraft((d) => ({ ...d, photos: [...d.photos, ...added], error: null }));
+  };
+
+  const replaceFirst = async (files: FileList | null) => {
+    const [p] = await readFiles(files);
+    if (!p) return;
+    setDraft((d) => {
+      if (d.photos[0]) releaseDraftPhotos([d.photos[0]]);
+      return { ...d, photos: [p, ...d.photos.slice(1)], error: null };
+    });
+  };
+
+  const removePhoto = (id: string) =>
+    setDraft((d) => {
+      releaseDraftPhotos(d.photos.filter((p) => p.id === id));
+      return { ...d, photos: d.photos.filter((p) => p.id !== id) };
+    });
+
+  const makeFirst = (id: string) =>
+    setDraft((d) => ({ ...d, photos: [...d.photos.filter((p) => p.id === id), ...d.photos.filter((p) => p.id !== id)] }));
+
+  // ---- generate ----
+  const canGenerate = checked.length > 0 && (draft.name.trim() !== '' || draft.photos.length > 0) && !busy;
+
+  const generate = async () => {
+    if (!canGenerate) return;
+    set({ stage: 'generating', error: null });
+    try {
+      const s = await generateSuggestion({
+        name: draft.name,
+        condition: draft.condition,
+        platforms: checked,
+        photos: draft.photos.map((p) => p.full),
+      });
+      // Regenerating only replaces what's still an AI draft — anything the
+      // user already confirmed stays as they left it.
+      setDraft((d) => {
+        const categories = { ...d.categories };
+        const categoriesOther = { ...d.categoriesOther };
+        for (const p of PLATFORMS) {
+          if (!d.categoriesOk[p]) {
+            categories[p] = s.categories[p]?.[0];
+            categoriesOther[p] = false;
+          }
+        }
+        return {
+          ...d,
+          stage: 'result',
+          title: d.titleOk ? d.title : s.title,
+          description: d.descriptionOk ? d.description : s.description,
+          categoryOptions: { ...d.categoryOptions, ...s.categories },
+          categories,
+          categoriesOther,
+          estimate: s.estimate,
+        };
+      });
+    } catch {
+      set({ stage: 'form', error: 'Generate failed. Check your connection and try again.' });
+    }
+  };
+
+  // ---- save ----
+  const canSave = draft.ask !== '' && draft.title.trim() !== '';
+
+  const save = async () => {
+    if (!canSave) return;
+    const categories: Partial<Record<Platform, string>> = {};
+    for (const p of checked) {
+      const c = draft.categories[p]?.trim();
+      if (c) categories[p] = c;
+    }
+    await saveListing({
+      title: draft.title.trim(),
+      description: draft.description.trim(),
+      condition: draft.condition,
+      groupId: draft.groupId,
+      platforms: checked,
+      categories,
+      priceListed: Number(draft.ask),
+      aiEstimate: draft.estimate,
+      photos: draft.photos.map(({ id, full, thumb }) => ({ id, full, thumb, createdAt: new Date().toISOString() })),
+    });
+    releaseDraftPhotos(draft.photos);
+    setDraft(emptyDraft());
+    onSaved();
+  };
+
+  // ---- render ----
+  if (draft.stage === 'generating') {
+    return (
+      <div className="new">
+        <div className="generating" role="status">
+          <span>Reading</span>
+          <span>photo</span>
+          <span>…</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (draft.stage === 'result') {
+    return (
+      <div className="new">
+        <div className="result">
+          <div className="legend-row">
+            <span style={{ color: 'var(--grey)' }}>Grey = AI draft · Black = yours</span>
+            <span className="links">
+              <button type="button" onClick={() => void generate()}>
+                Redo
+              </button>
+              <button type="button" onClick={() => set({ stage: 'form' })}>
+                Edit item
+              </button>
+            </span>
+          </div>
+
+          <label className="field">
+            <span className="label">Title</span>
+            <textarea
+              className={`title-area draftable ${draft.titleOk ? 'ok' : ''}`}
+              rows={2}
+              value={draft.title}
+              onChange={(e) => set({ title: e.target.value, titleOk: true })}
+            />
+          </label>
+
+          <label className="field">
+            <span className="label">Description</span>
+            <textarea
+              className={`desc-area draftable ${draft.descriptionOk ? 'ok' : ''}`}
+              rows={6}
+              value={draft.description}
+              onChange={(e) => set({ description: e.target.value, descriptionOk: true })}
+            />
+          </label>
+
+          {checked.length > 0 && (
+            <div>
+              {checked.map((p) => {
+                const options = draft.categoryOptions[p] ?? [];
+                const other = draft.categoriesOther[p] || (options.length === 0 && draft.categories[p] === undefined);
+                const setCat = (patch: Partial<NewDraft>) =>
+                  setDraft((d) => ({ ...d, ...patch, categoriesOk: { ...d.categoriesOk, [p]: true } }));
+                return (
+                  <div key={p} className="cat-row">
+                    <div className="cat-stripe" style={{ background: PLATFORM_STRONG[p] }} />
+                    <div className={`cat-body draftable ${draft.categoriesOk[p] ? 'ok' : ''}`}>
+                      <span className="label ink">{PLATFORM_LABEL[p]}</span>
+                      <select
+                        value={other ? OTHER : (draft.categories[p] ?? '')}
+                        onChange={(e) =>
+                          e.target.value === OTHER
+                            ? setCat({
+                                categories: { ...draft.categories, [p]: '' },
+                                categoriesOther: { ...draft.categoriesOther, [p]: true },
+                              })
+                            : setCat({
+                                categories: { ...draft.categories, [p]: e.target.value },
+                                categoriesOther: { ...draft.categoriesOther, [p]: false },
+                              })
+                        }
+                      >
+                        {options.map((o) => (
+                          <option key={o} value={o}>
+                            {o}
+                          </option>
+                        ))}
+                        <option value={OTHER}>Other…</option>
+                      </select>
+                      {other && (
+                        <input
+                          value={draft.categories[p] ?? ''}
+                          placeholder="Type the category"
+                          onChange={(e) => setCat({ categories: { ...draft.categories, [p]: e.target.value } })}
+                        />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {draft.estimate && (
+            <div className="estimate">
+              <span className="label">AI estimate</span>
+              <span className="range">
+                {num(draft.estimate.low)}–{num(draft.estimate.high)}
+              </span>
+              <span className="why">{draft.estimate.reasoning}</span>
+            </div>
+          )}
+
+          <label className="field">
+            <span className="label ink">Your price, kr</span>
+            <input
+              className="price-input"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              placeholder="———"
+              value={draft.ask}
+              onChange={(e) => set({ ask: digitsOnly(e.target.value) })}
+            />
+          </label>
+        </div>
+        <button type="button" className="band save-band" disabled={!canSave} onClick={() => void save()}>
+          <span>Save</span>
+          <span>→</span>
+        </button>
+      </div>
+    );
+  }
+
+  const first = draft.photos[0];
+  return (
+    <div className="new">
+      <input
+        ref={addInput}
+        className="hidden-file"
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={(e) => {
+          void addPhotos(e.target.files);
+          e.target.value = '';
+        }}
+      />
+      <input
+        ref={replaceInput}
+        className="hidden-file"
+        type="file"
+        accept="image/*"
+        onChange={(e) => {
+          void replaceFirst(e.target.files);
+          e.target.value = '';
+        }}
+      />
+      <div
+        className={`photo-box ${first ? 'has-photo' : ''}`}
+        role="button"
+        tabIndex={0}
+        onClick={() => (first ? replaceInput : addInput).current?.click()}
+      >
+        {first && <img src={first.fullUrl} alt="" />}
+        <span className="photo-caption">
+          {busy ? 'processing…' : first ? 'item photo · tap to retake' : 'tap to add photo'}
+        </span>
+        <button
+          type="button"
+          className="photo-plus"
+          aria-label="Add another photo"
+          onClick={(e) => {
+            e.stopPropagation();
+            addInput.current?.click();
+          }}
+        >
+          +1
+        </button>
+      </div>
+      {draft.photos.length > 1 && (
+        <div className="thumb-strip">
+          {draft.photos.map((p, i) => (
+            <div key={p.id} className={`thumb ${i === 0 ? 'first' : ''}`}>
+              <button type="button" aria-label="Use as main photo" onClick={() => makeFirst(p.id)}>
+                <img src={p.thumbUrl} alt="" />
+              </button>
+              <button type="button" className="x" aria-label="Remove photo" onClick={() => removePhoto(p.id)}>
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="fields">
+        <input
+          className="name-input"
+          placeholder="What is it?"
+          value={draft.name}
+          onChange={(e) => set({ name: e.target.value })}
+        />
+        <div className="grid2">
+          <label className="field">
+            <span className="label">Condition</span>
+            <select
+              className="line-select"
+              value={draft.condition}
+              onChange={(e) => set({ condition: e.target.value as Condition })}
+            >
+              {CONDITIONS.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="field">
+            <span className="label">Group</span>
+            <GroupSelect value={draft.groupId} onChange={(groupId) => set({ groupId })} />
+          </div>
+        </div>
+      </div>
+
+      <div className="plat-toggles">
+        {PLATFORMS.map((p) => {
+          const on = draft.platforms[p];
+          return (
+            <button
+              key={p}
+              type="button"
+              className={`plat-toggle ${on ? 'on' : ''}`}
+              aria-pressed={on}
+              style={on ? { background: PLATFORM_TINT[p], color: PLATFORM_TEXT[p] } : undefined}
+              onClick={() => set({ platforms: { ...draft.platforms, [p]: !on } })}
+            >
+              <span className="name">{PLATFORM_LABEL[p]}</span>
+              <span className="state">{on ? 'On' : 'Off'}</span>
+            </button>
+          );
+        })}
+      </div>
+      {draft.error && <div className="error-line">{draft.error}</div>}
+      <button type="button" className="band" disabled={!canGenerate} onClick={() => void generate()}>
+        <span>Generate</span>
+        <span>→</span>
+      </button>
+    </div>
+  );
+}
