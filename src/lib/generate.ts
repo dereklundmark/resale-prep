@@ -1,8 +1,5 @@
-// The AI suggestion call. In normal dev (`npm run dev`) and on Azure this
-// POSTs to the Azure Functions API at /api/generate, which calls Gemini
-// server-side — the API key never reaches the browser. `npm run dev:mock`
-// swaps in a local placeholder so the UI can be worked on without the API.
-import { PLATFORM_LABEL } from './constants';
+// The AI suggestion call: POSTs to the Azure Functions API at /api/generate,
+// which calls Gemini server-side — the API key never reaches the browser.
 import type { Condition, Estimate, Platform } from './types';
 
 export interface GenerateInput {
@@ -31,7 +28,7 @@ export class GenerateError extends Error {}
 const MAX_PHOTOS = 4;
 
 export function generateSuggestion(input: GenerateInput): Promise<Suggestion> {
-  return import.meta.env.VITE_GENERATE === 'mock' ? mockGenerate(input) : apiGenerate(input);
+  return apiGenerate(input);
 }
 
 function blobToBase64(b: Blob): Promise<string> {
@@ -57,42 +54,13 @@ async function apiGenerate({ name, condition, platforms, photos }: GenerateInput
       }),
     });
   } catch {
-    throw new GenerateError('Could not reach the API. Is `npm run dev` running?');
+    throw new GenerateError('Could not reach the API. Check your connection.');
   }
   const body = (await res.json().catch(() => null)) as (Suggestion & { error?: string }) | null;
   if (!res.ok || !body) {
     throw new GenerateError(
-      body?.error ?? (res.status === 404 ? 'No API here — start the app with `npm run dev`.' : 'Generate failed. Try again.'),
+      body?.error ?? 'Generate failed. Try again.',
     );
   }
   return body;
-}
-
-const MOCK_CATEGORIES: Record<Platform, string[]> = {
-  tradera: ['Hem & Hushåll › Möbler › Övrigt', 'Hem & Hushåll › Inredning', 'Övrigt'],
-  blocket: ['För hemmet › Möbler & heminredning', 'För hemmet › Övrigt', 'Övrigt'],
-  facebook: ['Home & Garden › Furniture', 'Home & Garden', 'Miscellaneous'],
-};
-
-function mockGenerate({ name, condition, platforms, photos }: GenerateInput): Promise<Suggestion> {
-  const thing = name.trim() || 'Föremål';
-  return new Promise((resolve) =>
-    setTimeout(
-      () =>
-        resolve({
-          title: `${thing} – ${condition.toLowerCase()}`,
-          description:
-            `Säljer ${thing.toLowerCase()} i ${condition.toLowerCase()}. ` +
-            `Fungerar som den ska, inga större skador. ${photos.length > 1 ? 'Se bilderna för detaljer. ' : ''}` +
-            'Rökfritt hem. Hämtas eller skickas mot fraktkostnad.',
-          categories: Object.fromEntries(platforms.map((p) => [p, MOCK_CATEGORIES[p]])),
-          estimate: {
-            low: 300,
-            high: 500,
-            reasoning: `Mock estimate for ${platforms.map((p) => PLATFORM_LABEL[p]).join(', ') || 'these platforms'} (dev:mock mode).`,
-          },
-        }),
-      1300,
-    ),
-  );
 }

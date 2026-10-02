@@ -9,22 +9,19 @@ The design handoff is in [`docs/design/`](docs/design/). Its `README.md` is the 
 
 ## Run it
 
-The real app, with the Gemini API, is tested **live on Azure** (pushed to GitHub, deployed
-automatically). Locally only the frontend runs, with a placeholder Generate:
+**Live only.** Push to `main` on GitHub; GitHub Actions builds the app and the API and
+deploys them to Azure Static Web Apps. Test on the live URL. Nothing is installed locally
+(no `node_modules`), to save disk space.
 
-```bash
-npm install
-npm run dev
-```
+To check a change before pushing, `npm install` then `npm run build` / `npm test` /
+`npm run lint` work, and deleting `node_modules` afterwards frees the space again. Running
+the app or API locally was removed; commit 3802edc has the setup if it's ever wanted again.
 
-The local Azure tools (Functions Core Tools + Static Web Apps CLI) were removed to save
-~2 GB of disk. To run the API locally again later: `npm i -D azure-functions-core-tools@4
-@azure/static-web-apps-cli`, `npm --prefix api install`, copy
-`api/local.settings.example.json` to `api/local.settings.json` with your Gemini key (git
-ignores that file), and see commit 3802edc for the `npm run dev` setup that ran both.
+The Gemini key lives in Azure: Static Web App → Settings → Environment variables
+(`GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FALLBACK_MODEL`). Never put it in the code.
 
-Other scripts: `npm test`, `npm run lint`, `npm run build`, `npm run icons` (regenerates
-`public/icons/` from `scripts/icon.svg`).
+The app icon source is `scripts/icon.svg`; the PNGs in `public/icons/` were generated from
+it with `@vite-pwa/assets-generator`.
 
 ## Decisions
 

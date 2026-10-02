@@ -8,9 +8,7 @@
   },
   "main": "dist/functions/*.js",
   "scripts": {
-    "build": "tsc",
-    "watch": "tsc -w",
-    "start": "func start"
+    "build": "tsc"
   },
   "dependencies": {
     "@azure/functions": "^4.16.5",
