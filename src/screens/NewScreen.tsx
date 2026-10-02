@@ -3,7 +3,7 @@ import { GroupSelect } from '../components/GroupSelect';
 import { useStore } from '../data/store';
 import { CONDITIONS, PLATFORM_LABEL, PLATFORM_STRONG, PLATFORM_TEXT, PLATFORM_TINT, PLATFORMS } from '../lib/constants';
 import { digitsOnly, num } from '../lib/format';
-import { generateSuggestion } from '../lib/generate';
+import { GenerateError, generateSuggestion } from '../lib/generate';
 import { newId } from '../lib/id';
 import { compressPhoto } from '../lib/image';
 import type { Condition, Platform } from '../lib/types';
@@ -103,8 +103,13 @@ export function NewScreen({ draft, setDraft, onSaved }: Props) {
           estimate: s.estimate,
         };
       });
-    } catch {
-      set({ stage: 'form', error: 'Generate failed. Check your connection and try again.' });
+    } catch (e) {
+      // Back to wherever they came from: Redo on the result keeps the result.
+      setDraft((d) => ({
+        ...d,
+        stage: d.title ? 'result' : 'form',
+        error: e instanceof GenerateError ? e.message : 'Generate failed. Check your connection and try again.',
+      }));
     }
   };
 
@@ -162,6 +167,11 @@ export function NewScreen({ draft, setDraft, onSaved }: Props) {
               </button>
             </span>
           </div>
+          {draft.error && (
+            <div className="error-line" style={{ padding: 0 }}>
+              {draft.error}
+            </div>
+          )}
 
           <label className="field">
             <span className="label">Title</span>

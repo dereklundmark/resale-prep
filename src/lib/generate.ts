@@ -1,6 +1,7 @@
-// The AI suggestion call. Layer 1 uses a local mock with the same contract;
-// layer 2 replaces mockGenerate with a POST to the Azure Functions API, which
-// calls Gemini server-side (the API key must never reach the browser).
+// The AI suggestion call. In normal dev (`npm run dev`) and on Azure this
+// POSTs to the Azure Functions API at /api/generate, which calls Gemini
+// server-side — the API key never reaches the browser. `npm run dev:mock`
+// swaps in a local placeholder so the UI can be worked on without the API.
 import { PLATFORM_LABEL } from './constants';
 import type { Condition, Estimate, Platform } from './types';
 
@@ -23,8 +24,48 @@ export interface Suggestion {
   estimate: Estimate;
 }
 
+/** Shown to the user as-is. */
+export class GenerateError extends Error {}
+
+/** The API accepts up to 4; the first photos are the most informative anyway. */
+const MAX_PHOTOS = 4;
+
 export function generateSuggestion(input: GenerateInput): Promise<Suggestion> {
-  return mockGenerate(input);
+  return import.meta.env.VITE_GENERATE === 'mock' ? mockGenerate(input) : apiGenerate(input);
+}
+
+function blobToBase64(b: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve((r.result as string).split(',', 2)[1] ?? '');
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(b);
+  });
+}
+
+async function apiGenerate({ name, condition, platforms, photos }: GenerateInput): Promise<Suggestion> {
+  let res: Response;
+  try {
+    res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        condition,
+        platforms,
+        photos: await Promise.all(photos.slice(0, MAX_PHOTOS).map(blobToBase64)),
+      }),
+    });
+  } catch {
+    throw new GenerateError('Could not reach the API. Is `npm run dev` running?');
+  }
+  const body = (await res.json().catch(() => null)) as (Suggestion & { error?: string }) | null;
+  if (!res.ok || !body) {
+    throw new GenerateError(
+      body?.error ?? (res.status === 404 ? 'No API here — start the app with `npm run dev`.' : 'Generate failed. Try again.'),
+    );
+  }
+  return body;
 }
 
 const MOCK_CATEGORIES: Record<Platform, string[]> = {
@@ -48,7 +89,7 @@ function mockGenerate({ name, condition, platforms, photos }: GenerateInput): Pr
           estimate: {
             low: 300,
             high: 500,
-            reasoning: `Placeholder estimate — real Gemini suggestions for ${platforms.map((p) => PLATFORM_LABEL[p]).join(', ') || 'these platforms'} arrive in layer 2.`,
+            reasoning: `Mock estimate for ${platforms.map((p) => PLATFORM_LABEL[p]).join(', ') || 'these platforms'} (dev:mock mode).`,
           },
         }),
       1300,

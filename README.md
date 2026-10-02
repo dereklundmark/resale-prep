@@ -9,13 +9,27 @@ The design handoff is in [`docs/design/`](docs/design/). Its `README.md` is the 
 
 ## Run it
 
+One-time setup:
+
 ```bash
 npm install
+npm --prefix api install
+```
+
+Then copy `api/local.settings.example.json` to `api/local.settings.json` and paste your
+Gemini key (from aistudio.google.com) into `GEMINI_API_KEY`. Git ignores that file, so the
+key is never committed. Never put the key anywhere else in the code.
+
+```bash
 npm run dev
 ```
 
-Vite prints a `Network:` address such as `http://192.168.1.23:5173`. Open it in Safari on
-your iPhone (same Wi-Fi) to try it on the phone.
+Open **http://localhost:4280**. That's the Static Web Apps emulator: it serves the app (Vite
+on :5175) and the API (Azure Functions on :7071) from one address, the same way Azure will.
+On your iPhone (same Wi-Fi) use `http://<your-pc-ip>:4280`. After changing anything in
+`api/` or `local.settings.json`, stop with Ctrl+C and run `npm run dev` again.
+
+`npm run dev:mock` runs the frontend alone with a placeholder Generate (no API, no key).
 
 Other scripts: `npm test`, `npm run lint`, `npm run build`, `npm run icons` (regenerates
 `public/icons/` from `scripts/icon.svg`).
@@ -24,9 +38,10 @@ Other scripts: `npm test`, `npm run lint`, `npm run build`, `npm run icons` (reg
 
 - **Cost: must be 100% free.** Only use services with a permanent free tier.
 - **Built in layers**, each usable on its own:
-  1. **Frontend** ✅ All screens. Data in this browser (IndexedDB). Generate is a mock.
-  2. **Gemini** Azure Functions API calls Gemini (free tier) server-side; the key never
-     reaches the browser. Replace `mockGenerate` in `src/lib/generate.ts`.
+  1. **Frontend** ✅ All screens. Data in this browser (IndexedDB).
+  2. **Gemini** ✅ `api/src/functions/generate.ts` (Azure Functions) calls Gemini (free tier)
+     server-side with a JSON schema, so the key never reaches the browser. Model is set by
+     `GEMINI_MODEL` in `local.settings.json`.
   3. **Azure** Azure Static Web Apps (Free plan) + Azure SQL Database free offer (set to
      **"Auto-pause the database until next month"**) + budget alert of 1 kr in Cost
      Management → Budgets. Replace `src/data/db.ts` with API calls. Move existing data with
@@ -46,7 +61,9 @@ Other scripts: `npm test`, `npm run lint`, `npm run build`, `npm run icons` (reg
 |---|---|
 | `src/lib/types.ts` | Data model (mirrors the planned SQL tables) |
 | `src/lib/stats.ts` | Everything derived: days listed, days to sell, group totals |
-| `src/lib/generate.ts` | The AI suggestion contract + layer-1 mock |
+| `src/lib/generate.ts` | The AI suggestion contract, API call + mock |
+| `api/src/functions/generate.ts` | The Gemini call (Azure Function) |
+| `scripts/dev.mjs` | Starts Functions host + SWA emulator for `npm run dev` |
 | `src/data/db.ts` | Storage (IndexedDB now, API later) |
 | `src/data/backup.ts` | Export / import of all data as JSON |
 | `src/screens/` | NEW, ACTIVE, SOLD, TOTAL |

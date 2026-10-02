@@ -1,0 +1,10 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "AzureWebJobsStorage": "",
+    "GEMINI_API_KEY": "PASTE-YOUR-KEY-HERE",
+    "GEMINI_MODEL": "gemini-3.8-flash",
+    "GEMINI_FALLBACK_MODEL": "gemini-3.5-flash"
+  }
+}
