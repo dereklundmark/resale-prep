@@ -27,6 +27,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // The whole site sits behind the login, so the manifest must be fetched with
+      // the auth cookie (it's also public via staticwebapp.config.json, belt and braces).
+      useCredentials: true,
       manifest: {
         name: 'Resale Prep',
         short_name: 'Resale',
@@ -45,6 +48,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,woff2,png,svg,ico}'],
+        // Never answer API calls or the login pages from the offline cache.
+        navigateFallbackDenylist: [/^\/api\//, /^\/\.auth\//, /^\/403\.html$/],
       },
     }),
   ],

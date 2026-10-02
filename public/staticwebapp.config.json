@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/staticwebapp.config.json",
+  "routes": [
+    { "route": "/.auth/login/aad", "statusCode": 404 },
+    { "route": "/.auth/login/x", "statusCode": 404 },
+    { "route": "/.auth/login/twitter", "statusCode": 404 },
+    { "route": "/403.html", "allowedRoles": ["anonymous", "authenticated"] },
+    { "route": "/icons/*", "allowedRoles": ["anonymous", "authenticated"] },
+    { "route": "/manifest.webmanifest", "allowedRoles": ["anonymous", "authenticated"] },
+    { "route": "/*", "allowedRoles": ["owner"] }
+  ],
+  "responseOverrides": {
+    "401": { "redirect": "/.auth/login/github?post_login_redirect_uri=/", "statusCode": 302 },
+    "403": { "rewrite": "/403.html" }
+  },
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/assets/*", "/icons/*", "/api/*", "/*.{js,json,webmanifest,html,ico,png,svg,woff,woff2}"]
+  },
+  "platform": {
+    "apiRuntime": "node:22"
+  }
+}
