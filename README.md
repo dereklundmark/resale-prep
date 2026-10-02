@@ -9,27 +9,19 @@ The design handoff is in [`docs/design/`](docs/design/). Its `README.md` is the 
 
 ## Run it
 
-One-time setup:
+The real app, with the Gemini API, is tested **live on Azure** (pushed to GitHub, deployed
+automatically). Locally only the frontend runs, with a placeholder Generate:
 
 ```bash
 npm install
-npm --prefix api install
-```
-
-Then copy `api/local.settings.example.json` to `api/local.settings.json` and paste your
-Gemini key (from aistudio.google.com) into `GEMINI_API_KEY`. Git ignores that file, so the
-key is never committed. Never put the key anywhere else in the code.
-
-```bash
 npm run dev
 ```
 
-Open **http://localhost:4280**. That's the Static Web Apps emulator: it serves the app (Vite
-on :5175) and the API (Azure Functions on :7071) from one address, the same way Azure will.
-On your iPhone (same Wi-Fi) use `http://<your-pc-ip>:4280`. After changing anything in
-`api/` or `local.settings.json`, stop with Ctrl+C and run `npm run dev` again.
-
-`npm run dev:mock` runs the frontend alone with a placeholder Generate (no API, no key).
+The local Azure tools (Functions Core Tools + Static Web Apps CLI) were removed to save
+~2 GB of disk. To run the API locally again later: `npm i -D azure-functions-core-tools@4
+@azure/static-web-apps-cli`, `npm --prefix api install`, copy
+`api/local.settings.example.json` to `api/local.settings.json` with your Gemini key (git
+ignores that file), and see commit 3802edc for the `npm run dev` setup that ran both.
 
 Other scripts: `npm test`, `npm run lint`, `npm run build`, `npm run icons` (regenerates
 `public/icons/` from `scripts/icon.svg`).
@@ -63,7 +55,6 @@ Other scripts: `npm test`, `npm run lint`, `npm run build`, `npm run icons` (reg
 | `src/lib/stats.ts` | Everything derived: days listed, days to sell, group totals |
 | `src/lib/generate.ts` | The AI suggestion contract, API call + mock |
 | `api/src/functions/generate.ts` | The Gemini call (Azure Function) |
-| `scripts/dev.mjs` | Starts Functions host + SWA emulator for `npm run dev` |
 | `src/data/db.ts` | Storage (IndexedDB now, API later) |
 | `src/data/backup.ts` | Export / import of all data as JSON |
 | `src/screens/` | NEW, ACTIVE, SOLD, TOTAL |

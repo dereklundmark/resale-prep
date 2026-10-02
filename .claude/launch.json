@@ -4,14 +4,8 @@
     {
       "name": "resale-prep",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 4280
-    },
-    {
-      "name": "resale-prep-mock",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:mock", "--", "--port", "5174", "--strictPort"],
-      "port": 5174
+      "runtimeArgs": ["run", "dev", "--", "--port", "5175", "--strictPort"],
+      "port": 5175
     }
   ]
 }
