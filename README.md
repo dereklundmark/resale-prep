@@ -9,9 +9,11 @@ The design handoff is in [`docs/design/`](docs/design/). Its `README.md` is the 
 
 ## Run it
 
-**Live only.** Push to `main` on GitHub; GitHub Actions builds the app and the API and
-deploys them to Azure Static Web Apps. Test on the live URL. Nothing is installed locally
-(no `node_modules`), to save disk space.
+**Live only.** The code lives in **Azure Repos** (Azure DevOps). Pushing to `main` runs
+[`azure-pipelines.yml`](azure-pipelines.yml): **Build** (install, lint, test, build app +
+API) → **Deploy** to Azure Static Web Apps (environment `production`) → **Mirror** the
+tested code to a public GitHub copy. Test on the live URL. Nothing is installed locally (no
+`node_modules`), to save disk space.
 
 To check a change before pushing, `npm install` then `npm run build` / `npm test` /
 `npm run lint` work, and deleting `node_modules` afterwards frees the space again. Running
@@ -43,6 +45,8 @@ it with `@vite-pwa/assets-generator`.
 - **Login: owner only.** Static Web Apps built-in auth, with every route requiring a custom
   `owner` role that only your own account is invited to.
 - **Frontend:** React + Vite + TypeScript, installable as a home-screen app (PWA).
+- **Source + CI/CD: all Microsoft.** Azure Repos + Azure Pipelines (free tier). A public
+  GitHub copy is pushed by the pipeline for recruiters; GitHub is never the source of truth.
 
 ## Where things are
 

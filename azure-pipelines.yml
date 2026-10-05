@@ -1,0 +1,100 @@
+# CI/CD for Resale Prep (Azure DevOps → Azure Static Web Apps).
+#
+#   Build   install, lint, test, build app + API, publish them as one artifact
+#   Deploy  deploy that exact artifact to the Static Web App (environment "production")
+#   Mirror  push the tested code to the public GitHub copy (for recruiters)
+#
+# Pipeline variables (Pipelines → this pipeline → Edit → Variables):
+#   SWA_DEPLOYMENT_TOKEN  secret  Static Web App → Overview → Manage deployment token
+#   GITHUB_PAT            secret  GitHub fine-grained token, Contents: read & write on the mirror repo
+#   GITHUB_REPO           plain   e.g. your-username/resale-prep (leave empty to skip mirroring)
+
+trigger:
+  branches:
+    include: [main]
+
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  nodeVersion: '22.x'
+
+stages:
+  - stage: Build
+    jobs:
+      - job: Build
+        steps:
+          - task: NodeTool@0
+            displayName: Use Node $(nodeVersion)
+            inputs:
+              versionSpec: $(nodeVersion)
+
+          - script: npm ci
+            displayName: Install (app)
+
+          - script: npm run lint
+            displayName: Lint
+
+          - script: npm test
+            displayName: Test
+
+          - script: npm run build
+            displayName: Build app
+
+          - script: |
+              npm ci
+              npm run build
+              npm prune --omit=dev
+            displayName: Build API
+            workingDirectory: api
+
+          # One artifact holding exactly what gets deployed: the built site
+          # (dist/) and the compiled API with its production dependencies.
+          - script: |
+              set -e
+              out="$(Build.ArtifactStagingDirectory)/site"
+              mkdir -p "$out/api"
+              cp -r dist "$out/dist"
+              cp -r api/dist api/node_modules api/host.json api/package.json "$out/api/"
+            displayName: Collect deployable files
+
+          - publish: $(Build.ArtifactStagingDirectory)/site
+            artifact: site
+            displayName: Publish artifact
+
+  - stage: Deploy
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: Deploy
+        environment: production
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                # Deployment jobs download the "site" artifact automatically.
+                - task: AzureStaticWebApp@0
+                  displayName: Deploy to Azure Static Web Apps
+                  inputs:
+                    workingDirectory: $(Pipeline.Workspace)/site
+                    app_location: dist
+                    api_location: api
+                    output_location: ''
+                    skip_app_build: true
+                    skip_api_build: true
+                    azure_static_web_apps_api_token: $(SWA_DEPLOYMENT_TOKEN)
+
+  - stage: Mirror
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), ne(variables['GITHUB_REPO'], ''))
+    jobs:
+      - job: MirrorToGitHub
+        steps:
+          - checkout: self
+            fetchDepth: 0 # full history, not the default shallow clone
+          - script: git push --force "https://x-access-token:${GITHUB_PAT}@github.com/$(GITHUB_REPO).git" HEAD:refs/heads/main
+            displayName: Push to GitHub mirror
+            env:
+              GITHUB_PAT: $(GITHUB_PAT) # secrets must be mapped explicitly; the log masks it
