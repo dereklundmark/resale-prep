@@ -56,11 +56,12 @@ async function apiGenerate({ name, condition, platforms, photos }: GenerateInput
   } catch {
     throw new GenerateError('Could not reach the API. Check your connection.');
   }
-  const body = (await res.json().catch(() => null)) as (Suggestion & { error?: string }) | null;
+  const body = (await res.json().catch(() => null)) as (Suggestion & { error?: string; detail?: string }) | null;
   if (!res.ok || !body) {
-    throw new GenerateError(
-      body?.error ?? 'Generate failed. Try again.',
-    );
+    // No JSON error means Azure answered, not our API — usually its ~45 s
+    // request timeout (504/500). Show the status so it's diagnosable.
+    if (!body?.error) throw new GenerateError(`Generate failed (HTTP ${res.status}). Try again.`);
+    throw new GenerateError(body.detail ? `${body.error} [${body.detail}]` : body.error);
   }
   return body;
 }

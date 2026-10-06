@@ -87,7 +87,9 @@ const json = (status: number, body: unknown): HttpResponseInit => ({ status, jso
 export async function generate(req: HttpRequest, ctx: InvocationContext): Promise<HttpResponseInit> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey.startsWith('PASTE')) {
-    return json(500, { error: 'GEMINI_API_KEY is not set. Put your key in api/local.settings.json.' });
+    return json(500, {
+      error: 'GEMINI_API_KEY is not set. Add it under Static Web App → Settings → Environment variables.',
+    });
   }
 
   let body: unknown;
@@ -117,39 +119,78 @@ export async function generate(req: HttpRequest, ctx: InvocationContext): Promis
     },
   };
 
-  // Free-tier models regularly answer 503 "high demand" for a few seconds.
-  // Try the main model twice, then the fallback model once.
-  const attempts = [MODEL, MODEL, FALLBACK_MODEL];
-  let lastError: unknown;
-  for (const [i, model] of attempts.entries()) {
+  // Free-tier models often answer 503 "high demand" (slowly), and each model
+  // has its own quota. So: try each model in turn, each with a short timeout,
+  // all inside a total budget that stays under Static Web Apps' ~45 s limit
+  // on API requests (past that, Azure kills the request with a bare error).
+  const started = Date.now();
+  const failures: { model: string; kind: 'busy' | 'quota' | 'fatal'; detail: string }[] = [];
+  for (const model of modelChain()) {
+    const remaining = TOTAL_BUDGET_MS - (Date.now() - started);
+    if (remaining < 3_000) break;
+    const timeoutMs = Math.min(ATTEMPT_TIMEOUT_MS, remaining);
     try {
-      const res = await ai.models.generateContent({ model, ...request });
+      const res = await ai.models.generateContent({
+        model,
+        ...request,
+        config: { ...request.config, abortSignal: AbortSignal.timeout(timeoutMs) },
+      });
       const suggestion = JSON.parse(res.text ?? '');
       const { low, high } = suggestion.estimate;
       suggestion.estimate.low = Math.max(0, Math.round(Math.min(low, high)));
       suggestion.estimate.high = Math.max(0, Math.round(Math.max(low, high)));
-      if (i > 0) ctx.log(`Gemini answered on attempt ${i + 1} (${model})`);
+      if (failures.length) ctx.log(`Gemini answered with ${model} after: ${failures.map((f) => f.detail).join(' · ')}`);
       return json(200, suggestion);
     } catch (e) {
-      lastError = e;
-      if (e instanceof ApiError && e.status === 429) {
-        return json(429, { error: 'Gemini free-tier limit reached. Wait a minute and try again.' });
-      }
-      if (!(e instanceof ApiError && RETRYABLE.has(e.status))) break;
-      ctx.warn(`Gemini ${model} busy (${e.status}), retrying`);
-      await sleep(1500);
+      const failure = classify(model, e, timeoutMs);
+      failures.push(failure);
+      ctx.warn(`Gemini attempt failed: ${failure.detail}`);
+      // A bad key or a bad request won't get better with another model.
+      if (failure.kind === 'fatal') break;
     }
   }
-  ctx.error('Gemini call failed', lastError);
-  if (lastError instanceof ApiError && RETRYABLE.has(lastError.status)) {
-    return json(503, { error: 'Gemini is busy right now. Try again in a minute.' });
+
+  const detail = failures.map((f) => f.detail).join(' · ') || 'no attempt fit in the time budget';
+  ctx.error(`Gemini call failed: ${detail}`);
+  if (failures.length && failures.every((f) => f.kind === 'quota')) {
+    return json(429, { error: 'Gemini free-tier limit reached. Wait a minute and try again.', detail });
   }
-  return json(502, { error: 'Gemini call failed. Try again.' });
+  if (failures.length && failures.every((f) => f.kind !== 'fatal')) {
+    return json(503, { error: 'Gemini is busy right now. Try again in a minute.', detail });
+  }
+  return json(502, { error: 'Gemini call failed.', detail });
 }
 
-const MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
-const FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.5-flash';
-const RETRYABLE = new Set([500, 503, 504]);
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const TOTAL_BUDGET_MS = 38_000;
+const ATTEMPT_TIMEOUT_MS = 12_000;
+
+/**
+ * GEMINI_MODEL first, then GEMINI_FALLBACK_MODEL (comma-separated list allowed),
+ * then Flash-Lite as a last resort — it's usually the least busy.
+ */
+function modelChain(): string[] {
+  const main = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+  const fallbacks = (process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.5-flash')
+    .split(',')
+    .map((m) => m.trim())
+    .filter(Boolean);
+  return [...new Set([main, ...fallbacks, 'gemini-3.5-flash-lite'])];
+}
+
+function classify(model: string, e: unknown, timeoutMs: number) {
+  if (e instanceof ApiError) {
+    // The SDK's message is Google's JSON error; pull out the human part.
+    const msg = /"message":\s*"([^"]+)"/.exec(e.message)?.[1] ?? e.message;
+    const detail = `${model}: ${e.status} ${msg.slice(0, 140)}`;
+    if (e.status === 429) return { model, kind: 'quota' as const, detail };
+    if (e.status === 400 || e.status === 401 || e.status === 403) return { model, kind: 'fatal' as const, detail };
+    return { model, kind: 'busy' as const, detail }; // 404 (retired model), 5xx: try the next model
+  }
+  if (e instanceof Error && (e.name === 'TimeoutError' || e.name === 'AbortError')) {
+    return { model, kind: 'busy' as const, detail: `${model}: no answer within ${Math.round(timeoutMs / 1000)} s` };
+  }
+  // e.g. the model returned something that isn't the JSON we asked for
+  return { model, kind: 'busy' as const, detail: `${model}: ${String(e).slice(0, 140)}` };
+}
 
 app.http('generate', { methods: ['POST'], authLevel: 'anonymous', handler: generate });
