@@ -23,6 +23,8 @@ export function NewScreen({ draft, setDraft, onSaved }: Props) {
   const [busy, setBusy] = useState(false);
   const addInput = useRef<HTMLInputElement>(null);
   const replaceInput = useRef<HTMLInputElement>(null);
+  const titleRef = useRef<HTMLTextAreaElement>(null);
+  const priceRef = useRef<HTMLInputElement>(null);
 
   const set = (patch: Partial<NewDraft>) => setDraft((d) => ({ ...d, ...patch }));
   const checked = PLATFORMS.filter((p) => draft.platforms[p]);
@@ -116,6 +118,15 @@ export function NewScreen({ draft, setDraft, onSaved }: Props) {
 
   // ---- save ----
   const canSave = draft.ask !== '' && draft.title.trim() !== '';
+  const missingTitle = draft.title.trim() === '';
+
+  // When SAVE isn't ready, the band says what's missing, and tapping it jumps
+  // to that field and opens the keyboard (the price field is easy to miss).
+  const showMissing = () => {
+    const el = missingTitle ? titleRef.current : priceRef.current;
+    el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el?.focus({ preventScroll: true });
+  };
 
   const save = async () => {
     if (!canSave) return;
@@ -171,6 +182,7 @@ export function NewScreen({ draft, setDraft, onSaved }: Props) {
           <label className="field">
             <span className="label">Title</span>
             <textarea
+              ref={titleRef}
               className={`title-area draftable ${draft.titleOk ? 'ok' : ''}`}
               rows={2}
               value={draft.title}
@@ -248,10 +260,11 @@ export function NewScreen({ draft, setDraft, onSaved }: Props) {
           <label className="field">
             <span className="label ink">Your price, kr</span>
             <input
+              ref={priceRef}
               className="price-input"
               inputMode="numeric"
               pattern="[0-9]*"
-              placeholder="———"
+              placeholder="Type your price"
               value={draft.ask}
               onChange={(e) => set({ ask: digitsOnly(e.target.value) })}
             />
@@ -259,9 +272,16 @@ export function NewScreen({ draft, setDraft, onSaved }: Props) {
         </div>
         <Pinned>
           {draft.error && <div className="pin-error">{draft.error}</div>}
-          <button type="button" className="band" disabled={!canSave} onClick={() => void save()}>
-            <span>Save</span>
-            <span>→</span>
+          {/* Not `disabled`: a disabled button can't be tapped, and the tap is
+              what takes you to the missing field. */}
+          <button
+            type="button"
+            className={`band ${canSave ? '' : 'band-waiting'}`}
+            aria-disabled={!canSave}
+            onClick={() => (canSave ? void save() : showMissing())}
+          >
+            <span>{canSave ? 'Save' : missingTitle ? 'Add a title first' : 'Type your price'}</span>
+            <span>{canSave ? '→' : '↑'}</span>
           </button>
         </Pinned>
       </div>

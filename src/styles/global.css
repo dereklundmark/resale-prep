@@ -207,6 +207,12 @@ select {
   background: var(--disabled);
   cursor: default;
 }
+/* SAVE before it's ready: same grey, but ink text, since it now tells you
+   what's missing ("Type your price ↑") and taps through to that field. */
+.band.band-waiting {
+  background: var(--disabled);
+  color: var(--ink);
+}
 
 /* ---------- NEW ---------- */
 .new {
