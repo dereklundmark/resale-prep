@@ -1,4 +1,4 @@
-# Handoff: Resale Prep Tool (mobile-first web app)
+# Handoff: Resale Prep Tool (mobile-first web app) · v2
 
 ## Overview
 This is a personal, single-user web app for prepping items for resale on three Swedish marketplaces: **Tradera**, **Blocket** and **Facebook Marketplace**.
@@ -22,10 +22,38 @@ Your task is to **recreate these designs in the target codebase**. The planned s
 
 If no frontend framework has been chosen, a lightweight React (Vite) or Svelte SPA is a good fit.
 
-`ResaleFinal.dc.html` opens in a browser as long as `support.js` sits next to it. It is fully clickable and uses mock data and a fake 1.3 s "generate" delay. The logic class at the bottom of the file, `class Component`, is a readable spec of every state transition.
+`ResaleFinal_v2.dc.html` is the current design. It opens in a browser as long as `support.js` sits next to it. It is fully clickable and uses mock data and a fake 1.3 s "generate" delay. The logic class at the bottom of the file, `class Component`, is a readable spec of every state transition. `ResaleFinal_v1.dc.html` is the previous version, kept for diffing.
 
 ## Fidelity
 **High-fidelity.** Colors, type, spacing and interactions are final. Recreate them closely. The only intentional placeholders are the striped photo boxes, which should be replaced by real uploaded images.
+
+---
+
+## What changed in v2 (vs. v1)
+v2 is driven by one-handed use: phone in the right hand, thumb only. The look is unchanged: same tokens, type scale, spacing, no icons. Each item below is specced in full further down.
+
+1. **Tab bar moved to the bottom, as a light pill.**
+   - The four text tabs sit in a sand-coloured pill above the home indicator, padded for the bottom safe area. It's the same visual as the Days / Photo switch.
+   - The active tab is a cream capsule. There is no underline and no top rule.
+   - Tabs share the width equally, and each is a 46 px tall hit target.
+   - The hero line stays at the top.
+   - The iOS keyboard covering the bar while typing is acceptable.
+2. **Toast moved above the tab bar.** It used to sit at the very bottom of the screen. It's now 52 px tall and sits directly above the pill bar, or above the pinned action band if one is showing.
+3. **The item detail sheet covers the tab bar.** It overlays everything (z-index above the bar). Its bottom padding is 40 px for the safe area.
+4. **TOTAL, expanded group:** Sold and For-sale are now visually distinct sections, each with tagged rows. See *TOTAL*.
+5. **Detail sheet: Edit and Delete.**
+   - "Edit" and "Delete item" text links sit at the bottom of the sheet.
+   - Edit turns the sheet into a form. Delete needs a confirmation tap.
+6. **Past-sale panel:** a "GROUP ▾" label now sits above the group picker.
+7. **NEW result:**
+   - A "Redo" link sits next to "Edit item". It regenerates the drafts.
+   - When Generate fails, an error line in the stale orange appears above the action band.
+8. **ACTIVE "Sold for" bar:** the date word ("today") is tappable and opens a native date picker. The label then shows e.g. "3 Oct".
+9. **TOTAL footer:** "Backup: Export · Import" links and a version line.
+10. **Two explorations, both behind flags.** Pick one before building. Recommendations are marked.
+    - `pinned` (default **off** in the prototype; **recommended on**): the main action band sticks just above the tab bar instead of ending the content. This applies to GENERATE (form), SAVE (result) and SAVE + NEXT (past-sale panel). The in-flow copies of these buttons are hidden when it's on.
+    - `markSold: 'pill' | 'swipe'` (**recommended: swipe**): in swipe mode the right-edge pill is removed. Swiping a row left reveals a full-height MARK SOLD button. The detail sheet keeps its full-width Mark sold pill as the tap path.
+11. **Data:** sold items now store a full date (`YYYY-MM-DD`). Backfilled sales store a month (`YYYY-MM`). The sold date shown in the detail sheet uses "14 Sep 2026" or "Jun 2025".
 
 ---
 
@@ -34,15 +62,17 @@ If no frontend framework has been chosen, a lightweight React (Vite) or Svelte S
   - On desktop, center the same layout in a column with `max-width: 560px`. No separate desktop design was made.
 - **Structure,** top to bottom:
   1. iOS safe-area top padding (the mock shows a 50 px status bar).
-  2. **Tab bar at the top:** a text-only row, `padding: 4px 20px 0`, `gap: 18px`.
-     - Tabs: `NEW`, `ACTIVE`, `SOLD`, `TOTAL`.
-     - Tab text: 13 px, weight 600, uppercase, letter-spacing .06em.
-     - Active tab: color `#2a2723` with a 2 px bottom border in the same color.
-     - Inactive tab: `#9a9489` with a transparent border.
-     - Tab padding: 8 px 0.
-  3. **Scrollable content area** (`flex: 1; overflow-y: auto`). It starts with a **hero line**, then the screen body. The bottom spacer is 40 px.
-- There is **no bottom tab bar** and there are no icons. The whole UI is typographic.
-- **Hero line:** `padding: 6px 20px 0`, flex row, `justify-content: space-between`, `align-items: center`.
+  2. **Scrollable content area** (`flex: 1; overflow-y: auto`). It starts with the **hero line**, then the screen body, then a 24 px spacer.
+  3. **Pinned action band** (only when `pinned` is on and the screen has a primary action). Height 54, ink, full-width. If there's a Generate error, an orange error line (13 px, weight 600, 10 × 20 px padding, 1 px `#ddd6ca` top rule) sits directly on top of it.
+  4. **Bottom tab bar (light pill):**
+     - Wrapper: `padding: 8px 16px env(safe-area-inset-bottom)` (the mock uses 30 px of bottom padding), background `#f6f3ed`, no top rule.
+     - Pill: `display: flex; gap: 2px; padding: 5px; border-radius: 999px; background: #e8e3da`.
+     - Each tab: `flex: 1; height: 46px; border-radius: 999px`, centered. The label is 13 px, weight 600, uppercase, letter-spacing .06em.
+     - Active tab: background `#f6f3ed`, text `#2a2723`. Inactive tab: transparent, text `#6f6a62`.
+     - The total bar height is about 94 px, including the safe area. Content scrolls above it, and it is not translucent.
+     - *Explored and rejected:* a flat bar with a top line, a sand flat bar, a black flat bar, and a dark pill.
+- No icons anywhere. The whole UI is typographic.
+- **Hero line** (stays at the top; it's for reading, not tapping): `padding: 10px 20px 0`, flex row, `justify-content: space-between`, `align-items: center`.
   - Hero text: weight 500, letter-spacing -0.025em, line-height 1.05.
   - Hero size is 34 px on New, Active and Sold. It is 44 px on Total, where the hero is the revenue figure.
   - Hero copy per tab:
@@ -78,7 +108,10 @@ If no frontend framework has been chosen, a lightweight React (Vite) or Svelte S
 **Stage B: Generating.** Large grey text "READING / PHOTO / …" (30 px, weight 500, `#cfc8bc`). Replace this with a real pending state while the Gemini call runs.
 
 **Stage C: Result (all fields editable, nothing saved yet)**
-- **Top row:** 11 px, uppercase, weight 700. On the left, a legend "Grey = AI draft · Black = yours" in `#6f6a62`. On the right, an underlined "Edit item" link that returns to Stage A with the inputs kept.
+- **Top row:** 11 px, uppercase, weight 700. On the left, a legend "Grey = AI draft · Black = yours" in `#6f6a62`. On the right, two underlined links with a 12 px gap:
+  - **v2:** "Redo" re-runs Generate with the same inputs.
+  - "Edit item" returns to Stage A with the inputs kept.
+- **v2 error line:** if Generate (or Redo) fails, keep the current stage and show a line in `oklch(0.52 0.15 38)` (13 px, weight 600) directly above the action band. In-flow it has 20 px side padding; when pinned it sits on top of the pinned band. Copy: "Couldn’t generate drafts. Check your connection and try again." The next attempt clears it.
 - **AI-draft vs. confirmed.** This is the core visual rule.
   - **Draft:** text color `#8a847a` with a **dashed** border.
   - **Confirmed:** text color `#2a2723` with a **solid** border.
@@ -94,7 +127,7 @@ If no frontend framework has been chosen, a lightweight React (Vite) or Svelte S
   - the range, e.g. `350–550`, in 40 px, weight 500, `#8a847a`
   - 1–2 sentences of reasoning, 13 px, `#6f6a62`
 - **Your price, kr:** a numeric input, 40 px, weight 500, 1.5 px solid bottom border. Placeholder "———". Digits only.
-- **Save band:** same style as Generate, with the label "SAVE" and 22 px of margin above.
+- **Save band:** same style as Generate, with the label "SAVE" and 22 px of margin above. When pinned, it sits above the tab bar instead.
   - Its background is `#c9c2b6` (disabled) until an asking price is entered.
   - On save:
     1. Insert the item with status `active`, `date_listed = today`, the chosen platforms, the categories, the description and the condition.
@@ -121,19 +154,26 @@ If no frontend framework has been chosen, a lightweight React (Vite) or Svelte S
   - **Right:**
     - asking price: 17 px, weight 600, e.g. "1 200 kr"
     - a **Mark sold** pill: 12 px, weight 600, 6 × 11 px padding, 1.5 px solid `#2a2723` border, pill radius. On hover it fills with `#2a2723` and the text turns `#f6f3ed`.
-- Tapping the row opens the **Item detail sheet**. Tapping **Mark sold** does not open the sheet (stop propagation). Instead it expands an inline dark bar under the row:
+- **v2, swipe variant (`markSold: 'swipe'`, recommended):**
+  - The right-edge pill is removed.
+  - A hint line sits under the filters: "← Swipe a row left to mark sold" (11 px, weight 700, uppercase, `#9a9489`).
+  - Swiping a row left more than 30 px slides it by -116 px (`transition: transform .22s`). This reveals a full-height ink button behind it: "MARK SOLD", 13 px, weight 700, uppercase, `#f6f3ed`.
+  - Swiping right, or tapping the row, closes it. Only one row is open at a time.
+  - Set `touch-action: pan-y` on the row so vertical scrolling still works.
+  - A tap that isn't a swipe opens the detail sheet.
+- Tapping the row opens the **Item detail sheet**. Tapping **Mark sold** (the pill, or the revealed swipe button) does not open the sheet (stop propagation). Instead it expands an inline dark bar under the row:
   - The bar: height 64, background `#2a2723`.
-  - It contains a "SOLD FOR" label, a numeric input prefilled with the asking price (24 px, weight 500), the word "today", ✕ to cancel, and an **OK** chip.
-  - OK moves the item to sold with `price_sold`, `date_sold = today` and days-to-sell, then shows the toast `+{price} kr`.
-  - The brief mentions an editable sold date. Add a date field to this bar, defaulting to today.
+  - It contains a "SOLD FOR" label, a numeric input prefilled with the asking price (24 px, weight 500), a date word, ✕ to cancel (`#cfc8bc`), and an **OK** chip.
+  - **v2:** the date word is "today" by default, 13 px, weight 600, with a 1 px dotted `#cfc8bc` underline. Tapping it opens the native date picker (a hidden `<input type="date">` plus `showPicker()`). After picking, the label shows "3 Oct".
+  - OK moves the item to sold with `price_sold`, `date_sold` (the picked date) and days-to-sell, then shows the toast `+{price} kr`.
 
 ### 3. SOLD
 - **"+ PAST SALE" band:** height 56, 17 px, weight 500, uppercase, with a count on the right ("backlog" / "{n} added").
   - Tapping it toggles an inline dark panel (`#2a2723`, text `#f6f3ed`) containing:
     - item title
     - a 2-column row with kr and month (`yyyy-mm`)
-    - a group select
-    - a **SAVE + NEXT** chip
+    - a group select, with a **v2** label above it: "GROUP ▾" (11 px, weight 700, uppercase, letter-spacing .1em, `#cfc8bc`)
+    - a **SAVE + NEXT** chip. When pinned, the chip is hidden and SAVE + NEXT becomes the pinned band.
   - After saving, the title and price clear, while the **group and month stay filled** for fast backlog entry.
   - Backfilled items have no photo, description or days-to-sell.
 - **Group filter row:** the same component as ACTIVE, with its own state. Padding: 16 px 20px 12 px.
@@ -159,17 +199,28 @@ If no frontend framework has been chosen, a lightweight React (Vite) or Svelte S
   - the sold/total count, 12 px grey
   - revenue, 20 px, weight 600, right-aligned in a 90 px column
   - `+` / `–` caret
-- **Tapping a group expands it** (22 px left indent, 16 px bottom padding) into two lists:
-  - **Sold · {n}:** a header with the group revenue, then rows of title and price (14 px, dashed dividers `#ddd6ca`).
-  - **Still for sale · {n}:** a header with the total asking price, then rows in grey `#6f6a62`.
-  - Empty states: "Nothing sold yet" / "All sold".
+- **Tapping a group expands it** (22 px left indent, 2 px top / 18 px bottom padding). **v2:** two clearly separate sections with a 22 px gap between them:
+  - **Sold section (first):**
+    - Header: 11 px, weight 700, uppercase, letter-spacing .1em, in green `oklch(0.5 0.12 150)`. "SOLD · {group revenue}" on the left, "{n} ITEMS" on the right.
+    - Rows: 14 px, 7 px vertical padding, 1 px dashed `#ddd6ca` dividers, 10 px gap.
+    - Each row has a **"sold" pill** (11 px, weight 600, 2 × 8 px padding, pill radius, background `oklch(0.94 0.04 150)`, text `oklch(0.4 0.1 150)`), then the title (flex 1, ink), then the sold price (weight 600, ink, right).
+  - **For-sale section:**
+    - Header: same style in `#6f6a62`. "FOR SALE · {asking total} ASKING" on the left, "{n} ITEMS" on the right.
+    - Each row has an **outlined "for sale" pill** (1 px `#bdb6aa` border, 1 × 7 px padding, `#6f6a62` text), then the title and asking price, both in `#6f6a62`.
+  - Empty states: "Nothing sold yet" / "All sold" (13 px, `#8a847a`).
   - Only one group is open at a time. Tapping an item opens the detail sheet.
 - An **"Ungrouped"** bucket is always included.
 - **Grand total row:** a 1.5 px solid top border, "ALL" on the left and total revenue on the right.
+- **v2 backup footer** (6 px below):
+  - "Backup: **Export** · **Import**" in 12 px `#6f6a62`, with the links in ink, weight 600, underlined.
+  - Export downloads `resale-backup-YYYY-MM-DD.json` containing `{app, version, exported, groups, items, sold}`.
+  - Import opens a file picker for `.json`, validates the `items` and `sold` arrays, replaces the data, and shows the toast "Backup imported" (or "Not a backup file").
+  - Under the links, a version line: "Resale Prep · version 1.2" (11 px, `#9a9489`). Wire it to the real build version.
 
 ### 5. Item detail sheet (overlay)
+- **v2:** the sheet overlays **everything, including the bottom tab bar**, and slides up from the bottom.
 - **Backdrop:** `rgba(42,39,35,.4)`. Tapping it closes the sheet.
-- **Sheet:** bottom-anchored, `max-height: 88%`, scrolls internally, background `#f6f3ed`, radius 16 px 16 px 0 0.
+- **Sheet:** bottom-anchored, `max-height: 90%`, scrolls internally, background `#f6f3ed`, radius 16 px 16 px 0 0.
 - **Photo:** 220 px tall, the first photo (swipe for more in the real app). A ✕ close button sits top-right: 36 px circle, background `#f6f3ed`.
 - **Body:** `padding: 18px 20px 36px`, `gap: 16px`.
   - **Status label:** 11 px, uppercase. For active items it reads "For sale · {n} days" (orange at 30 days or more, otherwise grey). For sold items it reads "Sold" in `oklch(0.5 0.12 150)`.
@@ -180,9 +231,27 @@ If no frontend framework has been chosen, a lightweight React (Vite) or Svelte S
   - **Platform pills:** tinted background with dark text, 12 px, weight 600, 4 × 10 px padding.
   - **Description:** 15 px, line-height 1.55. If a backfilled item has none, show "No description saved. This sale was backfilled."
   - **Active items only:** a "Mark sold" button, height 50, pill shape, background `#2a2723`. It closes the sheet and opens the inline sold bar on that row.
+  - **v2 link row** (bottom, `space-between`, 14 px, weight 600, underlined, 8 px vertical hit padding):
+    - "Edit" on the left, in ink.
+    - "Delete item" on the right, in `oklch(0.52 0.15 38)`. The first tap changes the label to "Tap again to delete". The second tap deletes the item, closes the sheet and shows the toast "Deleted".
+- **v2 edit mode** (opened from "Edit"):
+  - The photo shrinks to 120 px. The status line reads **"Editing"** in ink, and the title heading is hidden.
+  - Form fields, using the New-form styles (11 px uppercase grey labels, 1 px ink bottom borders):
+    - **Title:** a 2-row textarea, 20 px, weight 600.
+    - A 2-column grid containing:
+      - **Asking, kr** (or **Sold for, kr**): numeric
+      - **Group** select: None plus the groups
+      - **Condition** select
+      - Sold items only: **Sale date** (`type="date"`), or **Sold (month)** (`type="month"`) for backfilled sales
+    - **Description:** a 5-row textarea with a 2 px solid ink left border.
+  - Actions: a "Save changes" pill (flex 1, height 50, ink) and a "Cancel" underlined link to its right.
+  - Save writes the changes, returns to view mode and shows the toast "Saved". Cancel discards the changes.
 
 ### Toast
-Full-width at the bottom, height 84, background `#2a2723`, text `#f6f3ed`, 18 px, weight 500, uppercase. It auto-hides after 1.6 s.
+- **v2:** a full-width band, height 52, `padding: 0 20px`, background `#2a2723`, text `#f6f3ed`, 18 px, weight 500, uppercase.
+- It sits **directly above the tab bar**, or above the pinned band if one is visible. It never covers the tabs.
+- It sits beneath the detail sheet in z-order.
+- It auto-hides after 1.6 s.
 
 ---
 
@@ -191,10 +260,12 @@ Full-width at the bottom, height 84, background `#2a2723`, text `#f6f3ed`, 18 px
 tab: 'new' | 'inv' | 'sold' | 'dash'
 new-listing: name, condition, group, plats{T,B,F}, stage('form'|'generating'|'result'),
              title, titleOk, desc, descOk, cats{T,B,F}, catsOk{…}, ask
-active: fGroup, leftMode('days'|'photo'), sellId, sellPrice
+active: fGroup, leftMode('days'|'photo'), sellId, sellPrice, sellDate, swipeId
 sold:   sfGroup, pastOpen, past{title,price,date,group}, pastCount
 total:  openGroup
-global: detail{kind:'active'|'sold', id} | null, toast
+new:    + genError (string|null)
+global: detail{kind:'active'|'sold', id} | null, editing, ed{title,price,group,cond,desc,date}, delConfirm, toast
+flags:  pinned (bool), markSold ('pill'|'swipe'), barColor (final: 'pillLight'; other values are rejected explorations)
 ```
 Everything is derived at render time: days listed (today − `date_listed`), days-to-sell, sums, sell-through and per-group totals. Nothing is stored as an aggregate.
 
@@ -273,6 +344,9 @@ Backfilled items have `date_listed = NULL`, so days-to-sell is null and the UI s
 There are no icons or image assets. The striped boxes are placeholders for the user's uploaded photos. The only glyphs used are →, ✕, + and –.
 
 ## Files
-- `ResaleFinal.dc.html` is the final clickable prototype. Open it in a browser with `support.js` next to it. The logic class at the bottom holds the mock data and every interaction.
+- `ResaleFinal_v2.dc.html` is the **current** clickable prototype. Open it in a browser with `support.js` next to it. The logic class at the bottom holds the mock data and every interaction.
+  - Flags are props on the component: `pinned`, `markSold`, `barColor` (default `pillLight` = final), `leftMode`, `startTab`.
+  - Demo props (`seedStage`, `detailId`, `detailEdit`, `demoError`, `sellOpenId`, `swipeOpenId`, `demoToast`, `pastOpen`, `openGroup`) exist only to stage screenshots. Ignore them when building.
+- `ResaleFinal_v1.dc.html` is the previous version, for reference and diffing.
 - `support.js` is the runtime needed to open the prototype. It is not part of the app.
 - `resale-prep-tool-handoff.md` is the original product brief (screens, data model, stack).

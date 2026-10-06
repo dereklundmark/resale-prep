@@ -16,6 +16,17 @@ export function monthYear(date: string): string {
   return `${MONTHS[Number(m) - 1]} ${y}`;
 }
 
+/** "2026-10-03" → "3 Oct". */
+export function dayMonth(date: string): string {
+  const [, m, d] = date.split('-');
+  return `${Number(d)} ${MONTHS[Number(m) - 1]}`;
+}
+
+/** "2026-09-14" → "14 Sep 2026". */
+export function dayMonthYear(date: string): string {
+  return `${dayMonth(date)} ${date.slice(0, 4)}`;
+}
+
 /** Keeps digits only — for the kr inputs. */
 export function digitsOnly(s: string): string {
   return s.replace(/[^0-9]/g, '');

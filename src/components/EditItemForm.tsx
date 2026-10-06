@@ -8,11 +8,12 @@ import { GroupSelect } from './GroupSelect';
 
 interface Props {
   item: Item;
-  onDone(): void;
+  onCancel(): void;
+  onSaved(): void;
 }
 
-/** Inline editor shown in the detail sheet. Fields depend on for-sale vs sold. */
-export function EditItemForm({ item, onDone }: Props) {
+/** Edit mode of the detail sheet. Fields depend on for-sale vs sold. */
+export function EditItemForm({ item, onCancel, onSaved }: Props) {
   const { updateItem } = useStore();
   const sold = item.status === 'sold';
   const [title, setTitle] = useState(item.title);
@@ -43,30 +44,12 @@ export function EditItemForm({ item, onDone }: Props) {
           ? { priceSold: amount, dateSold: item.isBackfill ? `${dateSold}-01` : dateSold }
           : { priceListed: amount }),
       });
-      onDone();
+      onSaved();
     } catch {
       setSaving(false);
       window.alert("Couldn't save the changes. Try again.");
     }
   };
-
-  const conditionField = (
-    <label className="field">
-      <span className="label">Condition</span>
-      <select
-        className="line-select"
-        value={condition ?? ''}
-        onChange={(e) => setCondition((e.target.value || null) as Condition | null)}
-      >
-        <option value="">—</option>
-        {CONDITIONS.map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
 
   return (
     <form
@@ -78,7 +61,7 @@ export function EditItemForm({ item, onDone }: Props) {
     >
       <label className="field">
         <span className="label">Title</span>
-        <input className="line-input" value={title} onChange={(e) => setTitle(e.target.value)} />
+        <textarea className="edit-title" rows={2} value={title} onChange={(e) => setTitle(e.target.value)} />
       </label>
 
       <div className="grid2">
@@ -92,9 +75,28 @@ export function EditItemForm({ item, onDone }: Props) {
             onChange={(e) => setPrice(digitsOnly(e.target.value))}
           />
         </label>
-        {sold ? (
+        <div className="field">
+          <span className="label">Group</span>
+          <GroupSelect value={groupId} onChange={setGroupId} />
+        </div>
+        <label className="field">
+          <span className="label">Condition</span>
+          <select
+            className="line-select"
+            value={condition ?? ''}
+            onChange={(e) => setCondition((e.target.value || null) as Condition | null)}
+          >
+            <option value="">—</option>
+            {CONDITIONS.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </label>
+        {sold && (
           <label className="field">
-            <span className="label">{item.isBackfill ? 'Month sold' : 'Date sold'}</span>
+            <span className="label">{item.isBackfill ? 'Sold (month)' : 'Sale date'}</span>
             <input
               className="line-input"
               type={item.isBackfill ? 'month' : 'date'}
@@ -104,17 +106,7 @@ export function EditItemForm({ item, onDone }: Props) {
               onChange={(e) => setDateSold(e.target.value)}
             />
           </label>
-        ) : (
-          conditionField
         )}
-      </div>
-
-      <div className="grid2">
-        <div className="field">
-          <span className="label">Group</span>
-          <GroupSelect value={groupId} onChange={setGroupId} />
-        </div>
-        {sold && conditionField}
       </div>
 
       <label className="field">
@@ -122,17 +114,20 @@ export function EditItemForm({ item, onDone }: Props) {
         <textarea
           className="edit-desc"
           rows={5}
+          placeholder="Add a description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
       </label>
 
-      <button type="submit" className="sheet-sell" disabled={!canSave}>
-        {saving ? 'Saving…' : 'Save changes'}
-      </button>
-      <button type="button" className="danger-link" onClick={onDone}>
-        Cancel
-      </button>
+      <div className="edit-actions">
+        <button type="submit" className="sheet-sell" disabled={!canSave}>
+          {saving ? 'Saving…' : 'Save changes'}
+        </button>
+        <button type="button" className="edit-cancel" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
     </form>
   );
 }

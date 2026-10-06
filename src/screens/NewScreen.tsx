@@ -1,5 +1,6 @@
 import { useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { GroupSelect } from '../components/GroupSelect';
+import { Pinned } from '../components/Pinned';
 import { useStore } from '../data/store';
 import { CONDITIONS, PLATFORM_LABEL, PLATFORM_STRONG, PLATFORM_TEXT, PLATFORM_TINT, PLATFORMS } from '../lib/constants';
 import { digitsOnly, num } from '../lib/format';
@@ -167,12 +168,6 @@ export function NewScreen({ draft, setDraft, onSaved }: Props) {
               </button>
             </span>
           </div>
-          {draft.error && (
-            <div className="error-line" style={{ padding: 0 }}>
-              {draft.error}
-            </div>
-          )}
-
           <label className="field">
             <span className="label">Title</span>
             <textarea
@@ -262,10 +257,13 @@ export function NewScreen({ draft, setDraft, onSaved }: Props) {
             />
           </label>
         </div>
-        <button type="button" className="band save-band" disabled={!canSave} onClick={() => void save()}>
-          <span>Save</span>
-          <span>→</span>
-        </button>
+        <Pinned>
+          {draft.error && <div className="pin-error">{draft.error}</div>}
+          <button type="button" className="band" disabled={!canSave} onClick={() => void save()}>
+            <span>Save</span>
+            <span>→</span>
+          </button>
+        </Pinned>
       </div>
     );
   }
@@ -378,11 +376,13 @@ export function NewScreen({ draft, setDraft, onSaved }: Props) {
           );
         })}
       </div>
-      {draft.error && <div className="error-line">{draft.error}</div>}
-      <button type="button" className="band" disabled={!canGenerate} onClick={() => void generate()}>
-        <span>Generate</span>
-        <span>→</span>
-      </button>
+      <Pinned>
+        {draft.error && <div className="pin-error">{draft.error}</div>}
+        <button type="button" className="band" disabled={!canGenerate} onClick={() => void generate()}>
+          <span>Generate</span>
+          <span>→</span>
+        </button>
+      </Pinned>
     </div>
   );
 }

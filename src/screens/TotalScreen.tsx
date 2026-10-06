@@ -28,7 +28,7 @@ export function TotalScreen({ onOpen, onToast }: Props) {
     const blob = await exportBackup();
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `resale-prep-backup-${today()}.json`;
+    a.download = `resale-backup-${today()}.json`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
   };
@@ -39,9 +39,9 @@ export function TotalScreen({ onOpen, onToast }: Props) {
     try {
       await importBackup(file);
       await reload();
-      onToast('Imported');
-    } catch (e) {
-      window.alert(e instanceof Error ? e.message : 'Import failed');
+      onToast('Backup imported');
+    } catch {
+      onToast('Not a backup file');
     }
   };
 
@@ -99,8 +99,8 @@ export function TotalScreen({ onOpen, onToast }: Props) {
                   <div className="grp-body">
                     <div>
                       <div className="grp-sub-head sold">
-                        <span>Sold · {g.sold.length}</span>
-                        <span>{kr(g.revenue)}</span>
+                        <span>Sold · {kr(g.revenue)}</span>
+                        <span>{g.sold.length} items</span>
                       </div>
                       {g.sold.map((x) => (
                         <button key={x.id} type="button" className="grp-line" onClick={() => onOpen(x.id)}>
@@ -115,8 +115,8 @@ export function TotalScreen({ onOpen, onToast }: Props) {
                     </div>
                     <div>
                       <div className="grp-sub-head muted">
-                        <span>For sale · {g.active.length}</span>
-                        <span>{kr(g.askTotal)} asking</span>
+                        <span>For sale · {kr(g.askTotal)} asking</span>
+                        <span>{g.active.length} items</span>
                       </div>
                       {g.active.map((x) => (
                         <button key={x.id} type="button" className="grp-line muted" onClick={() => onOpen(x.id)}>
@@ -142,11 +142,12 @@ export function TotalScreen({ onOpen, onToast }: Props) {
       </div>
 
       <div className="housekeeping">
-        <span>Backup · data lives in this browser only</span>
-        <div className="links">
+        <div className="backup">
+          Backup:{' '}
           <button type="button" onClick={() => void doExport()}>
             Export
-          </button>
+          </button>{' '}
+          ·{' '}
           <button type="button" onClick={() => importInput.current?.click()}>
             Import
           </button>
@@ -162,7 +163,7 @@ export function TotalScreen({ onOpen, onToast }: Props) {
           }}
         />
         <span className="ver">
-          v{__APP_VERSION__} · {__APP_BUILD__} · {__APP_BUILT_ON__}
+          Resale Prep · version {__APP_VERSION__} · {__APP_BUILD__} · {__APP_BUILT_ON__}
         </span>
       </div>
     </div>

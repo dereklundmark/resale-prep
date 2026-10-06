@@ -75,38 +75,64 @@ select {
   flex-direction: column;
   overflow: hidden;
 }
-.tabs {
-  flex: none;
-  display: flex;
-  gap: 18px;
-  padding: max(env(safe-area-inset-top), 12px) 20px 0;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-.tab {
-  padding: 8px 0;
-  color: var(--inactive-tab);
-  border-bottom: 2px solid transparent;
-  text-transform: uppercase;
-  letter-spacing: inherit;
-}
-.tab.on {
-  color: var(--ink);
-  border-bottom-color: var(--ink);
-}
 .scroll {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  padding-top: max(env(safe-area-inset-top), 12px);
 }
 .bottom-space {
-  height: calc(40px + env(safe-area-inset-bottom));
+  height: 24px;
+}
+
+/* Bottom dock (v2, one-handed): pinned action band + light pill tab bar.
+   It's in normal flow under the scroll area, so content never hides behind it. */
+.dock {
+  flex: none;
+  position: relative;
+  z-index: 3;
+  background: var(--bg);
+}
+.tabbar {
+  padding: 8px 16px max(env(safe-area-inset-bottom), 12px);
+  background: var(--bg);
+}
+.tabpill {
+  display: flex;
+  gap: 2px;
+  padding: 5px;
+  border-radius: 999px;
+  background: var(--switch);
+}
+.tabpill button {
+  flex: 1;
+  height: 46px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--grey);
+}
+.tabpill button.on {
+  background: var(--bg);
+  color: var(--ink);
+}
+/* Orange line sitting directly on top of a pinned band when Generate fails. */
+.pin-error {
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--stale);
+  border-top: 1px solid var(--rule);
+  background: var(--bg);
 }
 .hero-row {
-  padding: 6px 20px 0;
+  padding: 10px 20px 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -347,11 +373,6 @@ select {
 .plat-toggle.on .name {
   text-decoration: none;
 }
-.error-line {
-  padding: 10px 20px;
-  font-size: 13px;
-  color: var(--stale);
-}
 
 .generating {
   padding: 30px 20px;
@@ -497,9 +518,6 @@ select {
   line-height: 1;
   border-radius: 0;
 }
-.save-band {
-  margin-top: 22px;
-}
 
 /* ---------- group filter row (Active + Sold) ---------- */
 .filters {
@@ -531,12 +549,49 @@ select {
 .inv-item {
   border-top: 1px solid var(--rule);
 }
+/* Swipe-to-mark-sold: the ink MARK SOLD button sits behind the row, and the
+   row slides 116 px left to reveal it. */
+.swipe {
+  position: relative;
+  overflow: hidden;
+}
+.swipe-action {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 116px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.swipe-hint {
+  padding: 0 20px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--inactive-tab);
+}
 .inv-row {
+  position: relative;
   display: flex;
   align-items: stretch;
   gap: 14px;
   padding: 12px 20px;
   cursor: pointer;
+  background: var(--bg);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;
+  transition: transform 0.22s ease;
 }
 .days {
   width: 46px;
@@ -621,22 +676,10 @@ select {
   font-size: 17px;
   white-space: nowrap;
 }
-.pill-btn {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 6px 11px;
-  border-radius: 999px;
-  border: 1.5px solid var(--ink);
-  white-space: nowrap;
-}
 @media (hover: hover) {
   .inv-row:hover,
   .sold-row:hover {
     background: var(--hover);
-  }
-  .pill-btn:hover {
-    background: var(--ink);
-    color: var(--bg);
   }
 }
 .list-end {
@@ -677,10 +720,10 @@ select {
 .date-chip {
   position: relative;
   flex: none;
-  font-size: 12px;
-  opacity: 0.7;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 2px;
+  border-bottom: 1px dotted #cfc8bc;
 }
 /* The real date input sits invisibly on top of the text so tapping it opens
    the native iOS picker. */
@@ -695,9 +738,8 @@ select {
   font-size: 16px;
 }
 .sellbar .cancel {
-  opacity: 0.6;
   padding: 6px;
-  color: var(--bg);
+  color: #cfc8bc;
 }
 .chip-light {
   flex: none;
@@ -780,7 +822,15 @@ select {
   flex-direction: column;
 }
 .dark-label {
-  color: #b9b2a6;
+  color: #cfc8bc;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 .dark-select {
   border: none;
@@ -922,7 +972,7 @@ select {
   display: flex;
   flex-direction: column;
   gap: 22px;
-  padding: 0 0 16px 22px;
+  padding: 2px 0 18px 22px;
 }
 .grp-sub-head {
   display: flex;
@@ -942,8 +992,9 @@ select {
 .grp-line {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
   gap: 10px;
-  padding: 6px 0;
+  padding: 7px 0;
   border-top: 1px dashed var(--rule);
   font-size: 14px;
   width: 100%;
@@ -959,24 +1010,28 @@ select {
   font-weight: 400;
 }
 .grp-line .t {
+  flex: 1;
   min-width: 0;
   text-align: left;
 }
 /* "sold" / "for sale" pills that make the two lists impossible to mix up */
 .status-tag {
   display: inline-block;
-  margin-right: 6px;
-  padding: 0 7px;
+  margin-right: 10px;
+  padding: 1px 7px;
   border: 1px solid #bdb6aa;
   border-radius: 999px;
   font-size: 11px;
-  line-height: 16px;
+  font-weight: 600;
+  line-height: 15px;
   vertical-align: 1px;
   white-space: nowrap;
+  color: var(--grey);
 }
 .status-tag.sold {
-  border-color: transparent;
-  background: oklch(0.93 0.04 150);
+  padding: 2px 8px;
+  border: none;
+  background: oklch(0.94 0.04 150);
   color: oklch(0.4 0.1 150);
 }
 .grp-empty {
@@ -1005,28 +1060,19 @@ select {
 .housekeeping {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-top: 18px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  gap: 6px;
+  margin-top: -20px; /* 6 px below the grand total (the dash column gap is 26) */
+  font-size: 12px;
   color: var(--grey);
 }
-.housekeeping .links {
-  display: flex;
-  gap: 16px;
-}
-.housekeeping button {
+.housekeeping .backup button {
+  font-weight: 600;
   text-decoration: underline;
-  text-transform: uppercase;
-  letter-spacing: inherit;
   color: var(--ink);
 }
 .housekeeping .ver {
-  font-weight: 400;
-  letter-spacing: 0.04em;
-  color: var(--inactive);
+  font-size: 11px;
+  color: var(--inactive-tab);
 }
 
 /* ---------- detail sheet ---------- */
@@ -1045,7 +1091,7 @@ select {
 }
 .sheet {
   position: relative;
-  max-height: 88%;
+  max-height: 90%;
   overflow-y: auto;
   background: var(--bg);
   border-radius: 16px 16px 0 0;
@@ -1057,6 +1103,9 @@ select {
   height: 220px;
   flex: none;
   background: repeating-linear-gradient(0deg, var(--photo-line) 0 1px, transparent 1px 9px), var(--photo);
+}
+.sheet-photos.small {
+  height: 120px;
 }
 .sheet-photos .track {
   display: flex;
@@ -1102,7 +1151,7 @@ select {
   font-size: 14px;
 }
 .sheet-body {
-  padding: 18px 20px calc(36px + env(safe-area-inset-bottom));
+  padding: 18px 20px calc(40px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -1177,26 +1226,22 @@ select {
   width: 100%;
   text-align: center;
 }
-.danger-link {
-  align-self: flex-start;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--grey);
-  text-decoration: underline;
-}
+/* Edit (ink, left) · Delete item (orange, right; second tap deletes) */
 .sheet-links {
   display: flex;
-  gap: 20px;
+  justify-content: space-between;
 }
-.edit-link {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink);
+.edit-link,
+.delete-link,
+.edit-cancel {
+  padding: 8px 0;
+  font-size: 14px;
+  font-weight: 600;
   text-decoration: underline;
+  color: var(--ink);
+}
+.delete-link {
+  color: var(--stale);
 }
 .sheet-sell:disabled {
   background: var(--disabled);
@@ -1209,6 +1254,27 @@ select {
   flex-direction: column;
   gap: 18px;
 }
+.edit-title {
+  border: none;
+  border-bottom: 1.5px solid var(--ink);
+  border-radius: 0;
+  background: transparent;
+  outline: none;
+  padding: 0 0 6px;
+  resize: none;
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 1.15;
+}
+.edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-top: 4px;
+}
+.edit-actions .sheet-sell {
+  flex: 1;
+}
 .edit-desc {
   border: none;
   border-left: 2px solid var(--ink);
@@ -1217,18 +1283,20 @@ select {
   outline: none;
   padding: 0 0 0 12px;
   resize: none;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.5;
 }
 
 /* ---------- toast ---------- */
+/* Sits directly on top of the dock (above the pinned band if there is one),
+   never over the tabs; the detail sheet (z 5) covers it. */
 .toast {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0;
-  min-height: 84px;
-  padding: 0 20px max(20px, env(safe-area-inset-bottom));
+  bottom: 100%;
+  height: 52px;
+  padding: 0 20px;
   display: flex;
   align-items: center;
   background: var(--ink);

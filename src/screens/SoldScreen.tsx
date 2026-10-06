@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { GroupFilterRow } from '../components/GroupFilterRow';
 import { GroupSelect } from '../components/GroupSelect';
+import { Pinned } from '../components/Pinned';
 import { useStore } from '../data/store';
 import { thisMonth } from '../lib/dates';
 import { digitsOnly, kr, monthYear } from '../lib/format';
@@ -95,11 +96,19 @@ export function SoldScreen({ filter, onFilter, onOpen }: Props) {
                   form may have changed (or been saved) in the meantime. */}
               <GroupSelect dark value={past.groupId} onChange={(groupId) => setPast((p) => ({ ...p, groupId }))} />
             </div>
-            <button type="submit" className="chip-light" disabled={!canSavePast}>
-              Save + next
-            </button>
           </div>
+          {/* Keeps Enter / "Go" on the keyboard submitting the form; the visible
+              SAVE + NEXT is the pinned band, which lives outside the form. */}
+          <button type="submit" className="visually-hidden" tabIndex={-1} aria-hidden="true" />
         </form>
+      )}
+      {pastOpen && (
+        <Pinned>
+          <button type="button" className="band" disabled={!canSavePast} onClick={() => void savePast()}>
+            <span>Save + next</span>
+            <span>→</span>
+          </button>
+        </Pinned>
       )}
 
       <GroupFilterRow className="filters-sold" value={filter} onChange={onFilter} />

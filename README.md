@@ -59,16 +59,24 @@ it with `@vite-pwa/assets-generator`.
 | `src/data/db.ts` | Storage (IndexedDB now, API later) |
 | `src/data/backup.ts` | Export / import of all data as JSON |
 | `src/screens/` | NEW, ACTIVE, SOLD, TOTAL |
-| `src/components/DetailSheet.tsx` | Item detail overlay |
+| `src/components/DetailSheet.tsx` | Item detail overlay (view, edit, delete) |
+| `src/components/Pinned.tsx` | Puts a screen's main action band in the dock above the tab bar |
 
-## Additions beyond the design
+## Design version
 
-- "Redo" link next to "Edit item" on the result screen (the spec asks for regenerate).
-  Confirmed (black) fields survive a redo.
-- Editable sold date on the "Sold for" bar: tap "today" to pick a date.
-- Detail sheet shows the saved categories and has "Edit" and "Delete item" links. Edit
-  changes title, price, group, condition, description and (for sold items) the sale date
-  or month.
-- TOTAL has Export / Import backup links and the build version at the bottom.
-- TOTAL groups separate "Sold" (green heading, "sold" tags) from "For sale" (grey heading,
-  outlined "for sale" tags) with a wider gap, so the two lists can't be mixed up.
+Built from **design v2** ([`docs/design/ResaleFinal_v2.dc.html`](docs/design/ResaleFinal_v2.dc.html),
+spec in [`docs/design/README.md`](docs/design/README.md)), with its explorations set to: light
+pill tab bar at the bottom,
+**pinned** action band (GENERATE / SAVE / SAVE + NEXT above the tabs), and **swipe left** to
+mark sold on ACTIVE.
+
+Where the app deliberately differs from the v2 spec:
+- Generate errors show the real reason (busy, free-tier limit, which model failed) instead
+  of the generic "Couldn't generate drafts" copy.
+- Import asks for confirmation before replacing all data, and the backup file keeps the
+  app's own format (items, groups, photos), which is what Import reads.
+- Confirmed (black) fields survive a Redo; only grey AI drafts are replaced.
+- The detail sheet also lists the saved category per platform, and the edit form's group
+  picker can create a new group.
+- Backfilled sales are stored as the 1st of their month (`YYYY-MM-01`, with `isBackfill`)
+  rather than as `YYYY-MM`; the UI shows them as months.

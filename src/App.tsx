@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DetailSheet } from './components/DetailSheet';
+import { PinnedSlot } from './components/Pinned';
 import { useStore } from './data/store';
 import { kr } from './lib/format';
 import { activeItems, matchesFilter, soldItems, soldPrice, sum } from './lib/stats';
@@ -40,6 +41,7 @@ export function App() {
   const [sell, setSell] = useState<SellState | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [pinnedSlot, setPinnedSlot] = useState<HTMLDivElement | null>(null);
   const toastTimer = useRef<number | undefined>(undefined);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -86,76 +88,86 @@ export function App() {
   };
 
   return (
-    <div className="app">
-      <nav className="tabs">
-        {TABS.map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            className={`tab ${tab === id ? 'on' : ''}`}
-            aria-current={tab === id ? 'page' : undefined}
-            onClick={() => go(id)}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
+    <PinnedSlot.Provider value={pinnedSlot}>
+      <div className="app">
+        <main className="scroll" ref={scrollRef}>
+          <div className="hero-row">
+            <h1 className={`hero ${tab === 'total' ? 'big' : ''}`} style={{ margin: 0 }}>
+              {store.loaded ? hero[tab] : ' '}
+            </h1>
+            {tab === 'active' && (
+              <div className="seg" role="group" aria-label="Left column">
+                {(['days', 'photo'] as const).map((m) => (
+                  <button key={m} type="button" className={leftMode === m ? 'on' : ''} onClick={() => setLeftMode(m)}>
+                    {m === 'days' ? 'Days' : 'Photo'}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
-      <main className="scroll" ref={scrollRef}>
-        <div className="hero-row">
-          <h1 className={`hero ${tab === 'total' ? 'big' : ''}`} style={{ margin: 0 }}>
-            {store.loaded ? hero[tab] : ' '}
-          </h1>
-          {tab === 'active' && (
-            <div className="seg" role="group" aria-label="Left column">
-              {(['days', 'photo'] as const).map((m) => (
-                <button key={m} type="button" className={leftMode === m ? 'on' : ''} onClick={() => setLeftMode(m)}>
-                  {m === 'days' ? 'Days' : 'Photo'}
+          {!store.loaded ? (
+            <div className="loading">…</div>
+          ) : (
+            <>
+              {tab === 'new' && (
+                <NewScreen
+                  draft={draft}
+                  setDraft={setDraft}
+                  onSaved={() => {
+                    setActiveFilter('all');
+                    go('active');
+                    flash('Saved →');
+                  }}
+                />
+              )}
+              {tab === 'active' && (
+                <ActiveScreen
+                  filter={activeFilter}
+                  onFilter={setActiveFilter}
+                  leftMode={leftMode}
+                  sell={sell}
+                  onSell={setSell}
+                  onOpen={setDetailId}
+                  onSold={(price) => flash(`+${kr(price)}`)}
+                />
+              )}
+              {tab === 'sold' && <SoldScreen filter={soldFilter} onFilter={setSoldFilter} onOpen={setDetailId} />}
+              {tab === 'total' && <TotalScreen onOpen={setDetailId} onToast={flash} />}
+            </>
+          )}
+          <div className="bottom-space" />
+        </main>
+
+        {/* Bottom dock: toast (floats just above it), pinned action band, tab bar. */}
+        <div className="dock">
+          {toast && (
+            <div className="toast" role="status">
+              {toast}
+            </div>
+          )}
+          <div ref={setPinnedSlot} />
+          <nav className="tabbar">
+            <div className="tabpill">
+              {TABS.map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={tab === id ? 'on' : ''}
+                  aria-current={tab === id ? 'page' : undefined}
+                  onClick={() => go(id)}
+                >
+                  {label}
                 </button>
               ))}
             </div>
-          )}
+          </nav>
         </div>
 
-        {!store.loaded ? (
-          <div className="loading">…</div>
-        ) : (
-          <>
-            {tab === 'new' && (
-              <NewScreen
-                draft={draft}
-                setDraft={setDraft}
-                onSaved={() => {
-                  setActiveFilter('all');
-                  go('active');
-                  flash('Saved →');
-                }}
-              />
-            )}
-            {tab === 'active' && (
-              <ActiveScreen
-                filter={activeFilter}
-                onFilter={setActiveFilter}
-                leftMode={leftMode}
-                sell={sell}
-                onSell={setSell}
-                onOpen={setDetailId}
-                onSold={(price) => flash(`+${kr(price)}`)}
-              />
-            )}
-            {tab === 'sold' && <SoldScreen filter={soldFilter} onFilter={setSoldFilter} onOpen={setDetailId} />}
-            {tab === 'total' && <TotalScreen onOpen={setDetailId} onToast={flash} />}
-          </>
+        {detailId && (
+          <DetailSheet itemId={detailId} onClose={closeDetail} onMarkSold={markSoldFromDetail} onToast={flash} />
         )}
-        <div className="bottom-space" />
-      </main>
-
-      {detailId && <DetailSheet itemId={detailId} onClose={closeDetail} onMarkSold={markSoldFromDetail} />}
-      {toast && (
-        <div className="toast" role="status">
-          {toast}
-        </div>
-      )}
-    </div>
+      </div>
+    </PinnedSlot.Provider>
   );
 }
