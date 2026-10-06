@@ -58,7 +58,10 @@ export function SoldScreen({ filter, onFilter, onOpen }: Props) {
             placeholder="Item"
             value={past.title}
             autoFocus
-            onChange={(e) => setPast({ ...past, title: e.target.value })}
+            onChange={(e) => {
+              const title = e.target.value;
+              setPast((p) => ({ ...p, title }));
+            }}
           />
           <div className="grid2" style={{ gap: 12 }}>
             <input
@@ -67,7 +70,10 @@ export function SoldScreen({ filter, onFilter, onOpen }: Props) {
               inputMode="numeric"
               pattern="[0-9]*"
               value={past.price}
-              onChange={(e) => setPast({ ...past, price: digitsOnly(e.target.value) })}
+              onChange={(e) => {
+                const price = digitsOnly(e.target.value);
+                setPast((p) => ({ ...p, price }));
+              }}
             />
             <input
               className="dark-input"
@@ -76,12 +82,18 @@ export function SoldScreen({ filter, onFilter, onOpen }: Props) {
               value={past.month}
               max={thisMonth()}
               aria-label="Month sold"
-              onChange={(e) => setPast({ ...past, month: e.target.value })}
+              onChange={(e) => {
+                const month = e.target.value;
+                setPast((p) => ({ ...p, month }));
+              }}
             />
           </div>
           <div className="past-actions">
             <div className="group-pick">
-              <GroupSelect dark value={past.groupId} onChange={(groupId) => setPast({ ...past, groupId })} />
+              <span className="label dark-label">Group ▾</span>
+              {/* Functional update: a new group is created asynchronously, and the
+                  form may have changed (or been saved) in the meantime. */}
+              <GroupSelect dark value={past.groupId} onChange={(groupId) => setPast((p) => ({ ...p, groupId }))} />
             </div>
             <button type="submit" className="chip-light" disabled={!canSavePast}>
               Save + next

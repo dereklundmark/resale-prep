@@ -770,12 +770,17 @@ select {
 .past-actions {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
   gap: 10px;
 }
 .past-actions .group-pick {
   min-width: 0;
   flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.dark-label {
+  color: #b9b2a6;
 }
 .dark-select {
   border: none;
@@ -1156,6 +1161,40 @@ select {
   text-transform: uppercase;
   color: var(--grey);
   text-decoration: underline;
+}
+.sheet-links {
+  display: flex;
+  gap: 20px;
+}
+.edit-link {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-decoration: underline;
+}
+.sheet-sell:disabled {
+  background: var(--disabled);
+  cursor: default;
+}
+
+/* inline editor in the detail sheet */
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.edit-desc {
+  border: none;
+  border-left: 2px solid var(--ink);
+  border-radius: 0;
+  background: transparent;
+  outline: none;
+  padding: 0 0 0 12px;
+  resize: none;
+  font-size: 16px;
+  line-height: 1.5;
 }
 
 /* ---------- toast ---------- */

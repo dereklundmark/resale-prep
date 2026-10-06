@@ -66,5 +66,7 @@ it with `@vite-pwa/assets-generator`.
 - "Redo" link next to "Edit item" on the result screen (the spec asks for regenerate).
   Confirmed (black) fields survive a redo.
 - Editable sold date on the "Sold for" bar: tap "today" to pick a date.
-- Detail sheet shows the saved categories and has a small "Delete item" link.
+- Detail sheet shows the saved categories and has "Edit" and "Delete item" links. Edit
+  changes title, price, group, condition, description and (for sold items) the sale date
+  or month.
 - TOTAL has Export / Import backup links and the build version at the bottom.

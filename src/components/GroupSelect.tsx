@@ -34,7 +34,12 @@ export function GroupSelect({ value, onChange, dark }: Props) {
           placeholder="Group name"
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') void create();
+            // preventDefault: this field can sit inside a <form> (the past-sale
+            // panel), and Enter / the iPhone "Go" key would otherwise submit it.
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              void create();
+            }
             if (e.key === 'Escape') setCreating(false);
           }}
         />

@@ -29,6 +29,8 @@ export interface Store {
   saveListing(listing: NewListing): Promise<Item>;
   markSold(id: string, priceSold: number, dateSold: IsoDate): Promise<void>;
   addPastSale(sale: PastSale): Promise<void>;
+  /** Saves an edited item (same id). */
+  updateItem(item: Item): Promise<void>;
   deleteItem(id: string): Promise<void>;
   reload(): Promise<void>;
 }

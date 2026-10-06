@@ -92,6 +92,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         });
       },
 
+      async updateItem(item) {
+        await upsert(item);
+      },
+
       async deleteItem(id) {
         const item = items.find((i) => i.id === id);
         if (!item) return;

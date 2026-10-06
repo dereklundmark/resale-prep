@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useStore } from '../data/store';
 import { PLATFORM_LABEL, PLATFORM_TEXT, PLATFORM_TINT, STALE_DAYS } from '../lib/constants';
 import { today } from '../lib/dates';
 import { kr, monthYear } from '../lib/format';
 import { daysListed } from '../lib/stats';
+import { EditItemForm } from './EditItemForm';
 import { PhotoImg } from './PhotoImg';
 
 interface Props {
@@ -15,6 +16,7 @@ interface Props {
 export function DetailSheet({ itemId, onClose, onMarkSold }: Props) {
   const { items, groups, deleteItem } = useStore();
   const item = items.find((i) => i.id === itemId);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -52,14 +54,14 @@ export function DetailSheet({ itemId, onClose, onMarkSold }: Props) {
       <div className="sheet">
         <div className="sheet-photos">
           {item.photoIds.length > 0 ? (
-            <>
-              <div className="track">
-                {item.photoIds.map((id) => (
-                  <PhotoImg key={id} id={id} variant="full" />
-                ))}
-              </div>
-              {item.photoIds.length > 1 && <span className="count">{item.photoIds.length} photos · swipe</span>}
-            </>
+              <>
+                  <div className="track">
+                    {item.photoIds.map((id) => (
+                      <PhotoImg key={id} id={id} variant="full" />
+                    ))}
+                  </div>
+                  {item.photoIds.length > 1 && <span className="count">{item.photoIds.length} photos · swipe</span>}
+              </>
           ) : (
             <span className="none">no photo</span>
           )}
@@ -71,53 +73,66 @@ export function DetailSheet({ itemId, onClose, onMarkSold }: Props) {
           <div className="stack8" style={{ gap: 6 }}>
             <span
               className="label"
-              style={{ color: active ? (days >= STALE_DAYS ? 'var(--stale)' : 'var(--grey)') : 'var(--sold)' }}
+              style={{ color: editing ? 'var(--grey)' : active ? (days >= STALE_DAYS ? 'var(--stale)' : 'var(--grey)') : 'var(--sold)' }}
             >
-              {active ? `For sale · ${days} days` : 'Sold'}
+              {editing ? 'Editing' : active ? `For sale · ${days} days` : 'Sold'}
             </span>
             <span className="sheet-title">{item.title}</span>
           </div>
-          <div className="facts">
-            {facts.map(([l, v]) => (
-              <div key={l} className="f">
-                <span className="fl">{l}</span>
-                <span className="fv">{v}</span>
-              </div>
-            ))}
-          </div>
-          {item.platforms.length > 0 && (
-            <div className="pills">
-              {item.platforms.map((p) => (
-                <span key={p} className="pill" style={{ background: PLATFORM_TINT[p], color: PLATFORM_TEXT[p] }}>
-                  {PLATFORM_LABEL[p]}
-                </span>
-              ))}
-            </div>
-          )}
-          <div className="stack8" style={{ gap: 4 }}>
-            <span className="label">Description</span>
-            <span className="sheet-desc">{item.description || 'No description saved. This sale was backfilled.'}</span>
-          </div>
-          {categories.length > 0 && (
-            <div className="stack8" style={{ gap: 4 }}>
-              <span className="label">Categories</span>
-              <div className="sheet-cats">
-                {categories.map((p) => (
-                  <span key={p}>
-                    {PLATFORM_LABEL[p]}: {item.categories[p]}
-                  </span>
+          {editing ? (
+            <EditItemForm item={item} onDone={() => setEditing(false)} />
+          ) : (
+            <>
+              <div className="facts">
+                {facts.map(([l, v]) => (
+                  <div key={l} className="f">
+                    <span className="fl">{l}</span>
+                    <span className="fv">{v}</span>
+                  </div>
                 ))}
               </div>
-            </div>
+              {item.platforms.length > 0 && (
+                <div className="pills">
+                  {item.platforms.map((p) => (
+                    <span key={p} className="pill" style={{ background: PLATFORM_TINT[p], color: PLATFORM_TEXT[p] }}>
+                      {PLATFORM_LABEL[p]}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="stack8" style={{ gap: 4 }}>
+                <span className="label">Description</span>
+                <span className="sheet-desc">
+                  {item.description || (item.isBackfill ? 'No description saved. This sale was backfilled.' : 'No description.')}
+                </span>
+              </div>
+              {categories.length > 0 && (
+                <div className="stack8" style={{ gap: 4 }}>
+                  <span className="label">Categories</span>
+                  <div className="sheet-cats">
+                    {categories.map((p) => (
+                      <span key={p}>
+                        {PLATFORM_LABEL[p]}: {item.categories[p]}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {active && (
+                <button type="button" className="sheet-sell" onClick={() => onMarkSold(item.id)}>
+                  Mark sold
+                </button>
+              )}
+              <div className="sheet-links">
+                <button type="button" className="edit-link" onClick={() => setEditing(true)}>
+                  Edit
+                </button>
+                <button type="button" className="danger-link" onClick={() => void remove()}>
+                  Delete item
+                </button>
+              </div>
+            </>
           )}
-          {active && (
-            <button type="button" className="sheet-sell" onClick={() => onMarkSold(item.id)}>
-              Mark sold
-            </button>
-          )}
-          <button type="button" className="danger-link" onClick={() => void remove()}>
-            Delete item
-          </button>
         </div>
       </div>
     </div>
