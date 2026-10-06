@@ -120,8 +120,8 @@ export function NewScreen({ draft, setDraft, onSaved }: Props) {
   const canSave = draft.ask !== '' && draft.title.trim() !== '';
   const missingTitle = draft.title.trim() === '';
 
-  // When SAVE isn't ready, the band says what's missing, and tapping it jumps
-  // to that field and opens the keyboard (the price field is easy to miss).
+  // SAVE stays grey until it's ready, but a tap on it jumps to the missing
+  // field and opens the keyboard (the price field is easy to miss).
   const showMissing = () => {
     const el = missingTitle ? titleRef.current : priceRef.current;
     el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -280,8 +280,8 @@ export function NewScreen({ draft, setDraft, onSaved }: Props) {
             aria-disabled={!canSave}
             onClick={() => (canSave ? void save() : showMissing())}
           >
-            <span>{canSave ? 'Save' : missingTitle ? 'Add a title first' : 'Type your price'}</span>
-            <span>{canSave ? '→' : '↑'}</span>
+            <span>Save</span>
+            <span>→</span>
           </button>
         </Pinned>
       </div>

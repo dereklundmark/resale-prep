@@ -207,11 +207,11 @@ select {
   background: var(--disabled);
   cursor: default;
 }
-/* SAVE before it's ready: same grey, but ink text, since it now tells you
-   what's missing ("Type your price ↑") and taps through to that field. */
+/* SAVE before it's ready: looks exactly like a disabled band, but stays
+   tappable so a tap can jump to the missing field. */
 .band.band-waiting {
   background: var(--disabled);
-  color: var(--ink);
+  cursor: default;
 }
 
 /* ---------- NEW ---------- */
