@@ -921,7 +921,7 @@ select {
 .grp-body {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 22px;
   padding: 0 0 16px 22px;
 }
 .grp-sub-head {
@@ -932,6 +932,9 @@ select {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   padding-bottom: 4px;
+}
+.grp-sub-head.sold {
+  color: var(--sold);
 }
 .grp-sub-head.muted {
   color: var(--grey);
@@ -954,6 +957,27 @@ select {
 }
 .grp-line.muted .p {
   font-weight: 400;
+}
+.grp-line .t {
+  min-width: 0;
+  text-align: left;
+}
+/* "sold" / "for sale" pills that make the two lists impossible to mix up */
+.status-tag {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 7px;
+  border: 1px solid #bdb6aa;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 16px;
+  vertical-align: 1px;
+  white-space: nowrap;
+}
+.status-tag.sold {
+  border-color: transparent;
+  background: oklch(0.93 0.04 150);
+  color: oklch(0.4 0.1 150);
 }
 .grp-empty {
   font-size: 13px;

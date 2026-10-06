@@ -70,3 +70,5 @@ it with `@vite-pwa/assets-generator`.
   changes title, price, group, condition, description and (for sold items) the sale date
   or month.
 - TOTAL has Export / Import backup links and the build version at the bottom.
+- TOTAL groups separate "Sold" (green heading, "sold" tags) from "For sale" (grey heading,
+  outlined "for sale" tags) with a wider gap, so the two lists can't be mixed up.

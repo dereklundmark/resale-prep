@@ -98,13 +98,16 @@ export function TotalScreen({ onOpen, onToast }: Props) {
                 {open && (
                   <div className="grp-body">
                     <div>
-                      <div className="grp-sub-head">
+                      <div className="grp-sub-head sold">
                         <span>Sold · {g.sold.length}</span>
                         <span>{kr(g.revenue)}</span>
                       </div>
                       {g.sold.map((x) => (
                         <button key={x.id} type="button" className="grp-line" onClick={() => onOpen(x.id)}>
-                          <span>{x.title}</span>
+                          <span className="t">
+                            <span className="status-tag sold">sold</span>
+                            {x.title}
+                          </span>
                           <span className="p">{kr(x.priceSold ?? 0)}</span>
                         </button>
                       ))}
@@ -112,12 +115,15 @@ export function TotalScreen({ onOpen, onToast }: Props) {
                     </div>
                     <div>
                       <div className="grp-sub-head muted">
-                        <span>Still for sale · {g.active.length}</span>
+                        <span>For sale · {g.active.length}</span>
                         <span>{kr(g.askTotal)} asking</span>
                       </div>
                       {g.active.map((x) => (
                         <button key={x.id} type="button" className="grp-line muted" onClick={() => onOpen(x.id)}>
-                          <span>{x.title}</span>
+                          <span className="t">
+                            <span className="status-tag">for sale</span>
+                            {x.title}
+                          </span>
                           <span className="p">{kr(x.priceListed ?? 0)}</span>
                         </button>
                       ))}
