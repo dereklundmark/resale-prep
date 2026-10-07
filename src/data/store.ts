@@ -63,6 +63,9 @@ export interface Store {
   items: Item[];
   groups: Group[];
   addGroup(name: string): Promise<Group>;
+  renameGroup(id: string, name: string): Promise<void>;
+  /** Deletes the group; its items are kept and become Ungrouped. */
+  deleteGroup(id: string): Promise<void>;
   saveListing(listing: NewListing): Promise<Item>;
   markSold(id: string, priceSold: number, dateSold: IsoDate): Promise<void>;
   addPastSale(sale: PastSale): Promise<void>;

@@ -1,19 +1,23 @@
 import { useRef, useState } from 'react';
+import { PhotoImg } from '../components/PhotoImg';
 import { exportBackup, readBackup } from '../data/backup';
 import { useStore } from '../data/store';
 import { GROUP_SHADES } from '../lib/constants';
 import { today } from '../lib/dates';
 import { currencySymbol } from '../lib/format';
-import { activeItems, groupSummaries, soldItems } from '../lib/stats';
+import { activeItems, groupSummaries, soldItems, type GroupSummary } from '../lib/stats';
+import type { Item } from '../lib/types';
 
 interface Props {
+  /** List / Photo switch: show a small thumbnail in front of each item. */
+  photos: boolean;
   onOpen(itemId: string): void;
   onToast(msg: string): void;
 }
 
 const UNGROUPED_KEY = '__ungrouped__';
 
-export function TotalScreen({ onOpen, onToast }: Props) {
+export function TotalScreen({ photos, onOpen, onToast }: Props) {
   const { items, groups, market, money, importItems } = useStore();
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -116,40 +120,13 @@ export function TotalScreen({ onOpen, onToast }: Props) {
                   <span className="caret">{open ? '–' : '+'}</span>
                 </button>
                 {open && (
-                  <div className="grp-body">
-                    <div>
-                      <div className="grp-sub-head sold">
-                        <span>Sold · {money(g.revenue)}</span>
-                        <span>{g.sold.length} items</span>
-                      </div>
-                      {g.sold.map((x) => (
-                        <button key={x.id} type="button" className="grp-line" onClick={() => onOpen(x.id)}>
-                          <span className="t">
-                            <span className="status-tag sold">sold</span>
-                            {x.title}
-                          </span>
-                          <span className="p">{money(x.priceSold ?? 0)}</span>
-                        </button>
-                      ))}
-                      {g.sold.length === 0 && <div className="grp-empty">Nothing sold yet</div>}
-                    </div>
-                    <div>
-                      <div className="grp-sub-head muted">
-                        <span>For sale · {money(g.askTotal)} asking</span>
-                        <span>{g.active.length} items</span>
-                      </div>
-                      {g.active.map((x) => (
-                        <button key={x.id} type="button" className="grp-line muted" onClick={() => onOpen(x.id)}>
-                          <span className="t">
-                            <span className="status-tag">for sale</span>
-                            {x.title}
-                          </span>
-                          <span className="p">{money(x.priceListed ?? 0)}</span>
-                        </button>
-                      ))}
-                      {g.active.length === 0 && <div className="grp-empty">All sold</div>}
-                    </div>
-                  </div>
+                  <GroupDetails
+                    summary={g}
+                    photos={photos}
+                    onOpen={onOpen}
+                    onToast={onToast}
+                    onDeleted={() => setOpenKey(null)}
+                  />
                 )}
               </div>
             );
@@ -187,6 +164,129 @@ export function TotalScreen({ onOpen, onToast }: Props) {
           Resale Prep · version {__APP_VERSION__} · {__APP_BUILD__} · {__APP_BUILT_ON__}
         </span>
       </div>
+    </div>
+  );
+}
+
+interface DetailsProps {
+  summary: GroupSummary;
+  photos: boolean;
+  onOpen(itemId: string): void;
+  onToast(msg: string): void;
+  onDeleted(): void;
+}
+
+/**
+ * An opened group: a Sold section and a For sale section, each shown only
+ * when it has items, then Rename / Delete group (not for Ungrouped).
+ */
+function GroupDetails({ summary: g, photos, onOpen, onToast, onDeleted }: DetailsProps) {
+  const { money, renameGroup, deleteGroup } = useStore();
+  const [renaming, setRenaming] = useState(false);
+  const [name, setName] = useState(g.name);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const total = g.sold.length + g.active.length;
+
+  const line = (x: Item, sold: boolean) => (
+    <button key={x.id} type="button" className={`grp-line ${sold ? '' : 'muted'}`} onClick={() => onOpen(x.id)}>
+      {photos && (
+        <span className="grp-thumb">
+          <PhotoImg id={x.photoIds[0]} variant="thumb" />
+        </span>
+      )}
+      <span className="t">
+        <span className={`status-tag ${sold ? 'sold' : ''}`}>{sold ? 'sold' : 'for sale'}</span>
+        {x.title}
+      </span>
+      <span className="p">{money((sold ? x.priceSold : x.priceListed) ?? 0, x.currencyCode)}</span>
+    </button>
+  );
+
+  const rename = async () => {
+    const next = name.trim();
+    if (!g.groupId || !next || next === g.name) return setRenaming(false);
+    try {
+      await renameGroup(g.groupId, next);
+      setRenaming(false);
+    } catch (e) {
+      onToast(e instanceof Error ? e.message : 'Rename failed');
+    }
+  };
+
+  const remove = async () => {
+    if (!g.groupId) return;
+    if (!confirmDelete) return setConfirmDelete(true);
+    await deleteGroup(g.groupId);
+    onDeleted();
+    onToast('Group deleted');
+  };
+
+  return (
+    <div className="grp-body">
+      {g.sold.length > 0 && (
+        <div>
+          <div className="grp-sub-head sold">
+            <span>Sold · {money(g.revenue)}</span>
+            <span>{g.sold.length} items</span>
+          </div>
+          {g.sold.map((x) => line(x, true))}
+        </div>
+      )}
+      {g.active.length > 0 && (
+        <div>
+          <div className="grp-sub-head muted">
+            <span>For sale · {money(g.askTotal)} asking</span>
+            <span>{g.active.length} items</span>
+          </div>
+          {g.active.map((x) => line(x, false))}
+        </div>
+      )}
+      {total === 0 && <div className="grp-empty">No items yet</div>}
+
+      {g.groupId &&
+        (renaming ? (
+          <div className="grp-rename">
+            <input
+              className="line-input"
+              autoFocus
+              value={name}
+              aria-label="Group name"
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void rename();
+                if (e.key === 'Escape') setRenaming(false);
+              }}
+            />
+            <button type="button" className="mini-btn" onClick={() => void rename()}>
+              OK
+            </button>
+            <button type="button" className="mini-btn" aria-label="Cancel" onClick={() => setRenaming(false)}>
+              ✕
+            </button>
+          </div>
+        ) : (
+          <div className="grp-actions">
+            <button
+              type="button"
+              className="edit-link"
+              onClick={() => {
+                setName(g.name);
+                setConfirmDelete(false);
+                setRenaming(true);
+              }}
+            >
+              Rename
+            </button>
+            <button type="button" className="delete-link" onClick={() => void remove()}>
+              {confirmDelete ? 'Tap again to delete' : 'Delete group'}
+            </button>
+          </div>
+        ))}
+      {confirmDelete && (
+        <div className="grp-note">
+          {total ? `Its ${total} item${total === 1 ? '' : 's'} stay, and move to Ungrouped.` : 'The group is empty.'}
+        </div>
+      )}
     </div>
   );
 }

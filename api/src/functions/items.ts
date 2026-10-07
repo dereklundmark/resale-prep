@@ -4,6 +4,7 @@
 //   PUT    /api/items/{id}   replace an item's fields and platforms (edit, mark sold); photos untouched
 //   DELETE /api/items/{id}   delete an item; its photos and platform rows go with it (ON DELETE CASCADE)
 //   POST   /api/groups       create a group (or return the existing one with that name)
+//   PUT    /api/groups/{id}  rename a group;  DELETE /api/groups/{id}  delete it (items become Ungrouped)
 import { app, type HttpRequest } from '@azure/functions';
 import { sql, withDb } from '../lib/db.js';
 import { HttpError, handler, json, readJson } from '../lib/http.js';
@@ -277,6 +278,50 @@ app.http('groups', {
           SELECT id, name, description, created_at FROM dbo.groups WHERE name = @name;`);
       return r.recordset[0];
     });
+    return json(200, {
+      id: String(group.id).toLowerCase(),
+      name: group.name,
+      description: group.description,
+      createdAt: group.created_at.toISOString(),
+    });
+  }),
+});
+
+// PUT /api/groups/{id} renames; DELETE /api/groups/{id} deletes the group.
+// Its items are kept and become Ungrouped (group_id ON DELETE SET NULL).
+app.http('group', {
+  route: 'groups/{id}',
+  methods: ['PUT', 'DELETE'],
+  authLevel: 'anonymous',
+  handler: handler(async (req: HttpRequest) => {
+    const id = guid(req.params.id, 'id');
+
+    if (req.method === 'DELETE') {
+      const r = await withDb((pool) =>
+        pool.request().input('id', sql.UniqueIdentifier, id).query('DELETE dbo.groups WHERE id = @id;'),
+      );
+      if (!r.rowsAffected[0]) throw new HttpError(404, 'Group not found');
+      return { status: 204 };
+    }
+
+    const b = (await readJson(req)) as Record<string, unknown>;
+    const name = text(b?.name, 'name', 100).trim();
+    if (!name) throw bad('name is required');
+    const group = await withDb(async (pool) => {
+      const r = await pool
+        .request()
+        .input('id', sql.UniqueIdentifier, id)
+        .input('name', sql.NVarChar(100), name).query(`
+          IF EXISTS (SELECT 1 FROM dbo.groups WHERE name = @name AND id <> @id)
+            THROW 50001, 'A group with that name already exists.', 1;
+          UPDATE dbo.groups SET name = @name WHERE id = @id;
+          SELECT id, name, description, created_at FROM dbo.groups WHERE id = @id;`);
+      return r.recordset[0];
+    }).catch((e: unknown) => {
+      if ((e as { number?: number }).number === 50001) throw new HttpError(409, 'A group with that name already exists.');
+      throw e;
+    });
+    if (!group) throw new HttpError(404, 'Group not found');
     return json(200, {
       id: String(group.id).toLowerCase(),
       name: group.name,

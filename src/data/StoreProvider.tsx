@@ -74,6 +74,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     const upsert = (item: Item) => setItems((prev) => [item, ...prev.filter((i) => i.id !== item.id)]);
     const put = async (item: Item) => upsert(await api.put<Item>(`/api/items/${item.id}`, item));
+    // A group can be deleted while a form still points at it; save such
+    // items as Ungrouped rather than failing on the database's foreign key.
+    const existingGroup = (id: string | null) => (id && groups.some((g) => g.id === id) ? id : null);
     const marketFields = () => ({
       marketCode: market.code,
       currencyCode: market.currencyCode,
@@ -122,11 +125,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       reload,
       addGroup,
 
+      async renameGroup(id, name) {
+        const group = await api.put<Group>(`/api/groups/${id}`, { name: name.trim() });
+        setGroups((prev) => prev.map((g) => (g.id === id ? group : g)));
+      },
+
+      async deleteGroup(id) {
+        await api.del(`/api/groups/${id}`);
+        setGroups((prev) => prev.filter((g) => g.id !== id));
+        // Mirror the database (ON DELETE SET NULL): its items become Ungrouped.
+        setItems((prev) => prev.map((i) => (i.groupId === id ? { ...i, groupId: null } : i)));
+      },
+
       async saveListing({ photos, ...l }: NewListing) {
         const item: Item = {
           id: newId(),
           ...marketFields(),
           ...l,
+          groupId: existingGroup(l.groupId),
           photoIds: photos.map((p) => p.id),
           priceSold: null,
           status: 'active',
@@ -154,7 +170,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           title,
           description: '',
           condition: null,
-          groupId,
+          groupId: existingGroup(groupId),
           platforms: [],
           categories: {},
           priceListed: null,

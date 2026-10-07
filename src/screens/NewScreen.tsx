@@ -163,13 +163,16 @@ export function NewScreen({ draft, setDraft, onSaved }: Props) {
 
   // ---- render ----
   if (draft.stage === 'generating') {
+    // Photo scan: your photo, large, with an ink line sweeping over it while
+    // Gemini works. Without a photo it scans the striped placeholder.
+    const photo = draft.photos[0];
     return (
       <div className="new">
-        <div className="generating" role="status">
-          <span>Reading</span>
-          <span>photo</span>
-          <span>…</span>
+        <div className="scan" role="status" aria-label={photo ? 'Reading photo' : 'Writing listing'}>
+          {photo && <img src={photo.fullUrl} alt="" />}
+          <div className="scan-line" />
         </div>
+        <div className="scan-caption">{photo ? 'Reading photo…' : 'Writing listing…'}</div>
       </div>
     );
   }

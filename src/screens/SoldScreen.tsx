@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { GroupFilterRow } from '../components/GroupFilterRow';
 import { GroupSelect } from '../components/GroupSelect';
+import { PhotoImg } from '../components/PhotoImg';
 import { Pinned } from '../components/Pinned';
 import { useStore } from '../data/store';
 import { thisMonth } from '../lib/dates';
@@ -9,12 +10,14 @@ import { daysToSell, filterLabel, matchesFilter, soldItems, soldPrice, sortSold,
 import type { GroupFilter } from '../lib/types';
 
 interface Props {
+  /** List / Photo switch: show a thumbnail in front of each row. */
+  photos: boolean;
   filter: GroupFilter;
   onFilter(f: GroupFilter): void;
   onOpen(itemId: string): void;
 }
 
-export function SoldScreen({ filter, onFilter, onOpen }: Props) {
+export function SoldScreen({ photos, filter, onFilter, onOpen }: Props) {
   const { items, groups, addPastSale, money } = useStore();
   const [pastOpen, setPastOpen] = useState(false);
   const [pastCount, setPastCount] = useState(0);
@@ -117,6 +120,11 @@ export function SoldScreen({ filter, onFilter, onOpen }: Props) {
         const dts = daysToSell(item);
         return (
           <button key={item.id} type="button" className="sold-row" onClick={() => onOpen(item.id)}>
+            {photos && (
+              <span className="sold-thumb">
+                <PhotoImg id={item.photoIds[0]} variant="thumb" />
+              </span>
+            )}
             <div className="left">
               <span className="t">{item.title}</span>
               <span className="meta">

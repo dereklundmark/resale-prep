@@ -20,14 +20,40 @@ const TABS: [Tab, string][] = [
   ['total', 'Total'],
 ];
 
-const LEFT_MODE_KEY = 'resale-prep:leftMode';
+// Per-tab view choices, remembered on this device.
+const PREF_KEYS = {
+  leftMode: 'resale-prep:leftMode', // ACTIVE: 'days' | 'photo'
+  soldPhotos: 'resale-prep:soldPhotos', // SOLD: '1' = photos on
+  totalPhotos: 'resale-prep:totalPhotos', // TOTAL: '1' = photos on
+};
 
-function readLeftMode(): LeftMode {
+function readPref(key: string): string | null {
   try {
-    return localStorage.getItem(LEFT_MODE_KEY) === 'photo' ? 'photo' : 'days';
+    return localStorage.getItem(key);
   } catch {
-    return 'days';
+    return null;
   }
+}
+
+function writePref(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* private mode — the choice just won't stick */
+  }
+}
+
+/** The List / Photo (or Days / Photo) pill on the hero row. */
+function ViewSwitch({ labels, photo, onChange }: { labels: [string, string]; photo: boolean; onChange(photo: boolean): void }) {
+  return (
+    <div className="seg" role="group" aria-label="View">
+      {labels.map((label, i) => (
+        <button key={label} type="button" className={photo === (i === 1) ? 'on' : ''} onClick={() => onChange(i === 1)}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 export function App() {
@@ -36,7 +62,11 @@ export function App() {
   const [draft, setDraft] = useState<NewDraft>(emptyDraft);
   const [activeFilter, setActiveFilter] = useState<GroupFilter>('all');
   const [soldFilter, setSoldFilter] = useState<GroupFilter>('all');
-  const [leftMode, setLeftModeState] = useState<LeftMode>(readLeftMode);
+  const [leftMode, setLeftModeState] = useState<LeftMode>(() =>
+    readPref(PREF_KEYS.leftMode) === 'photo' ? 'photo' : 'days',
+  );
+  const [soldPhotos, setSoldPhotosState] = useState(() => readPref(PREF_KEYS.soldPhotos) === '1');
+  const [totalPhotos, setTotalPhotosState] = useState(() => readPref(PREF_KEYS.totalPhotos) === '1');
   const [sell, setSell] = useState<SellState | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -70,12 +100,20 @@ export function App() {
 
   const setLeftMode = (m: LeftMode) => {
     setLeftModeState(m);
-    try {
-      localStorage.setItem(LEFT_MODE_KEY, m);
-    } catch {
-      /* private mode — the choice just won't stick */
-    }
+    writePref(PREF_KEYS.leftMode, m);
   };
+  const setSoldPhotos = (on: boolean) => {
+    setSoldPhotosState(on);
+    writePref(PREF_KEYS.soldPhotos, on ? '1' : '0');
+  };
+  const setTotalPhotos = (on: boolean) => {
+    setTotalPhotosState(on);
+    writePref(PREF_KEYS.totalPhotos, on ? '1' : '0');
+  };
+
+  // A filter on a group that was just deleted falls back to "All".
+  const valid = (f: GroupFilter): GroupFilter =>
+    typeof f === 'string' || store.groups.some((g) => g.id === f.groupId) ? f : 'all';
 
   const closeDetail = useCallback(() => setDetailId(null), []);
 
@@ -105,14 +143,14 @@ export function App() {
               {store.loaded ? hero[tab] : ' '}
             </h1>
             {tab === 'active' && (
-              <div className="seg" role="group" aria-label="Left column">
-                {(['days', 'photo'] as const).map((m) => (
-                  <button key={m} type="button" className={leftMode === m ? 'on' : ''} onClick={() => setLeftMode(m)}>
-                    {m === 'days' ? 'Days' : 'Photo'}
-                  </button>
-                ))}
-              </div>
+              <ViewSwitch
+                labels={['Days', 'Photo']}
+                photo={leftMode === 'photo'}
+                onChange={(photo) => setLeftMode(photo ? 'photo' : 'days')}
+              />
             )}
+            {tab === 'sold' && <ViewSwitch labels={['List', 'Photo']} photo={soldPhotos} onChange={setSoldPhotos} />}
+            {tab === 'total' && <ViewSwitch labels={['List', 'Photo']} photo={totalPhotos} onChange={setTotalPhotos} />}
           </div>
 
           {!store.loaded ? (
@@ -149,7 +187,7 @@ export function App() {
               )}
               {tab === 'active' && (
                 <ActiveScreen
-                  filter={activeFilter}
+                  filter={valid(activeFilter)}
                   onFilter={setActiveFilter}
                   leftMode={leftMode}
                   sell={sell}
@@ -158,8 +196,10 @@ export function App() {
                   onSold={(price) => flash(`+${store.money(price)}`)}
                 />
               )}
-              {tab === 'sold' && <SoldScreen filter={soldFilter} onFilter={setSoldFilter} onOpen={setDetailId} />}
-              {tab === 'total' && <TotalScreen onOpen={setDetailId} onToast={flash} />}
+              {tab === 'sold' && (
+                <SoldScreen photos={soldPhotos} filter={valid(soldFilter)} onFilter={setSoldFilter} onOpen={setDetailId} />
+              )}
+              {tab === 'total' && <TotalScreen photos={totalPhotos} onOpen={setDetailId} onToast={flash} />}
             </>
           )}
           <div className="bottom-space" />
