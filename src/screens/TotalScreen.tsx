@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { exportBackup, readBackup } from '../data/backup';
-import { clearLocal, readLocal, type LocalData } from '../data/legacyLocal';
 import { useStore } from '../data/store';
 import { GROUP_SHADES } from '../lib/constants';
 import { today } from '../lib/dates';
@@ -19,17 +18,6 @@ export function TotalScreen({ onOpen, onToast }: Props) {
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const importInput = useRef<HTMLInputElement>(null);
-
-  // Items saved in this browser before the database existed (layers 1–2).
-  // Offered once, here, to move into the database.
-  const [local, setLocal] = useState<LocalData | null>(null);
-  useEffect(() => {
-    let live = true;
-    void readLocal(market).then((d) => live && setLocal(d.items.length ? d : null));
-    return () => {
-      live = false;
-    };
-  }, [market]);
 
   const sold = soldItems(items);
   const total = items.length;
@@ -60,7 +48,7 @@ export function TotalScreen({ onOpen, onToast }: Props) {
     if (!file) return;
     let batch;
     try {
-      batch = await readBackup(file, market);
+      batch = await readBackup(file);
     } catch {
       onToast('Not a backup file');
       return;
@@ -72,21 +60,6 @@ export function TotalScreen({ onOpen, onToast }: Props) {
       onToast(`Backup imported · ${added} added`);
     } catch (e) {
       onToast(e instanceof Error ? e.message : 'Import failed');
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const moveLocal = async () => {
-    if (!local) return;
-    setBusy('Moving…');
-    try {
-      const added = await importItems(local);
-      await clearLocal();
-      setLocal(null);
-      onToast(`Moved ${added} to the database`);
-    } catch (e) {
-      onToast(e instanceof Error ? e.message : 'Moving failed. Try again.');
     } finally {
       setBusy(null);
     }
@@ -189,14 +162,6 @@ export function TotalScreen({ onOpen, onToast }: Props) {
       </div>
 
       <div className="housekeeping">
-        {local && (
-          <button type="button" className="move-local" disabled={!!busy} onClick={() => void moveLocal()}>
-            <span>
-              {local.items.length} item{local.items.length === 1 ? '' : 's'} saved on this phone before the database
-            </span>
-            <span>Move them →</span>
-          </button>
-        )}
         {busy && <div>{busy}</div>}
         <div className="backup">
           Backup:{' '}

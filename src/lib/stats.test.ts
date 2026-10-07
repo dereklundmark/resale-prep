@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { daysBetween, today } from './dates';
 import { currencySymbol, money, monthYear } from './format';
-import { upgradeItem } from '../data/legacyLocal';
 import { daysListed, daysToSell, groupSummaries, matchesFilter, sortActive, sortSold } from './stats';
 import type { Group, Item } from './types';
 
@@ -97,14 +96,3 @@ describe('stats', () => {
   });
 });
 
-describe('legacy data', () => {
-  const se = { code: 'SE', name: 'Sweden', listingLanguage: 'sv', currencyCode: 'SEK', locale: 'sv-SE', isCurrent: true };
-  it('upgrades a pre-database item: Swedish condition label to code, market added', () => {
-    const old = { id: 'a', title: 't', condition: 'Mycket bra skick', status: 'active' };
-    expect(upgradeItem(old, se)).toMatchObject({ condition: 'very_good', marketCode: 'SE', currencyCode: 'SEK', listingLanguage: 'sv' });
-  });
-  it('keeps items that are already in the new shape', () => {
-    const cur = { id: 'b', condition: 'good', marketCode: 'DE', currencyCode: 'EUR', listingLanguage: 'de' };
-    expect(upgradeItem(cur, se)).toMatchObject({ condition: 'good', marketCode: 'DE', currencyCode: 'EUR' });
-  });
-});

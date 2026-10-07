@@ -36,8 +36,7 @@ it with `@vite-pwa/assets-generator`.
   3. **Azure** ✅ Azure Static Web Apps (Free plan) + Azure SQL Database free offer
      (**"Auto-pause the database until next month"**) + budget alert of 1 kr. The app talks to
      SQL only through the API in `api/` (see the table below); the database login is in the
-     `SQL_*` environment variables. Items saved in the browser before the database are moved
-     over once from the TOTAL screen ("Move them →").
+     `SQL_*` environment variables.
   4. **Backfill** the 15 past sales.
 - **Photos are stored in Azure SQL**, not Blob Storage. Blob Storage is only free for 12
   months. Photos are shrunk on the phone to ~150 KB, so the 32 GB free SQL tier is plenty.
@@ -66,7 +65,6 @@ it with `@vite-pwa/assets-generator`.
 | `src/lib/generate.ts` | The AI suggestion call from the app |
 | `src/data/api.ts` | Every request to the API; waits out a waking database |
 | `src/data/StoreProvider.tsx` | App data: loads from the API, saves through it |
-| `src/data/legacyLocal.ts` | Reads pre-database browser data and old backups |
 | `src/data/backup.ts` | Export / import of all data as JSON |
 | `src/screens/` | NEW, ACTIVE, SOLD, TOTAL |
 | `src/components/DetailSheet.tsx` | Item detail overlay (view, edit, delete) |

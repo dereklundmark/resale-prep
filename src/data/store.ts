@@ -33,7 +33,7 @@ export interface PastSale {
   groupId: string | null;
 }
 
-/** Items to add from before the database (old browser data or a backup file). */
+/** Items to add from a backup file. */
 export interface ImportBatch {
   items: Item[];
   groups: Group[];

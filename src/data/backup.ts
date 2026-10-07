@@ -1,15 +1,14 @@
 // Export / import of everything as one JSON file, photos inlined as data
-// URLs. The database is the real home of the data now; this is a personal
-// copy you can keep, and a way to bring old (pre-database) data in.
-import type { Group, Item, Market } from '../lib/types';
+// URLs. The database is the real home of the data; this is a personal copy
+// you can keep, and import adds back anything from it that's missing.
+import type { Group, Item } from '../lib/types';
 import { photoUrl } from './api';
-import { upgradeItem } from './legacyLocal';
 import type { ImportBatch } from './store';
 
 interface BackupFile {
   app: 'resale-prep';
-  /** 1 = before the database (browser storage), 2 = from the database. */
-  version: 1 | 2;
+  /** 2 = from the database (version 1 files were pre-database test data). */
+  version: 2;
   exportedAt: string;
   items: Item[];
   groups: Group[];
@@ -44,10 +43,10 @@ async function dataUrlToBlob(url: string): Promise<Blob> {
   return (await fetch(url)).blob();
 }
 
-/** Reads a backup file (old or new format) into items ready to add to the database. */
-export async function readBackup(file: Blob, market: Market): Promise<ImportBatch> {
+/** Reads a backup file into items ready to add to the database. */
+export async function readBackup(file: Blob): Promise<ImportBatch> {
   const data = JSON.parse(await file.text()) as BackupFile;
-  if (data?.app !== 'resale-prep' || !Array.isArray(data.items) || !Array.isArray(data.groups)) {
+  if (data?.app !== 'resale-prep' || data.version !== 2 || !Array.isArray(data.items) || !Array.isArray(data.groups)) {
     throw new Error('Not a backup file');
   }
   const photos = new Map<string, { full: Blob; thumb: Blob }>();
@@ -55,7 +54,7 @@ export async function readBackup(file: Blob, market: Market): Promise<ImportBatc
     photos.set(p.id, { full: await dataUrlToBlob(p.full), thumb: await dataUrlToBlob(p.thumb) });
   }
   return {
-    items: data.items.map((i) => upgradeItem(i as unknown as Record<string, unknown>, market)),
+    items: data.items,
     groups: data.groups,
     photos,
   };
