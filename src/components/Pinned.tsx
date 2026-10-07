@@ -1,8 +1,6 @@
-import { createContext, useContext, type ReactNode } from 'react';
+import { useContext, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-
-/** The element in the bottom dock (just above the tab bar) that holds the pinned action band. */
-export const PinnedSlot = createContext<HTMLElement | null>(null);
+import { PinnedSlot } from './pinnedSlot';
 
 /**
  * Renders its children in the dock above the tab bar instead of in the page,

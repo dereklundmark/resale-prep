@@ -1,16 +1,14 @@
-// Data model. Mirrors the SQL tables planned for layer 3 (see
-// docs/design/README.md "Data model") so the storage swap is mechanical:
-// items ↔ Item, groups ↔ Group, photos ↔ Photo.
+// Data model. Mirrors the SQL tables (sql/001_schema.sql) and the JSON the
+// API sends (api/src/functions/items.ts): items ↔ Item, groups ↔ Group.
+//
+// Platforms, conditions and markets are data, not code: they come from
+// GET /api/config, so adding a marketplace or a country needs no app change.
 
-export type Platform = 'tradera' | 'blocket' | 'facebook';
+/** A platform code from dbo.platforms, e.g. 'tradera'. */
+export type Platform = string;
 
-export type Condition =
-  | 'Ny'
-  | 'Nyskick'
-  | 'Mycket bra skick'
-  | 'Bra skick'
-  | 'Använt skick'
-  | 'Renoveringsobjekt';
+/** A condition code from dbo.conditions, e.g. 'very_good'. */
+export type Condition = string;
 
 export type ItemStatus = 'active' | 'sold';
 
@@ -25,6 +23,10 @@ export interface Estimate {
 
 export interface Item {
   id: string;
+  /** Market, currency and listing language the item was made in. */
+  marketCode: string;
+  currencyCode: string;
+  listingLanguage: string;
   title: string;
   description: string;
   /** null for backfilled sales, where it was never recorded. */
@@ -40,7 +42,7 @@ export interface Item {
   /** For backfilled sales this is the 1st of the month entered. */
   dateSold: IsoDate | null;
   isBackfill: boolean;
-  /** First photo is the thumbnail. */
+  /** First photo is the thumbnail. Served by GET /api/photos/{id}. */
   photoIds: string[];
   aiEstimate: Estimate | null;
   notes: string | null;
@@ -54,13 +56,54 @@ export interface Group {
   createdAt: string;
 }
 
-export interface Photo {
+/** A photo picked in the app, not uploaded yet. */
+export interface PhotoUpload {
   id: string;
   /** Compressed full-size JPEG (long edge ≤ 1280 px). */
   full: Blob;
   /** Square 160 px JPEG for list rows. */
   thumb: Blob;
-  createdAt: string;
+}
+
+// ---------- catalog (GET /api/config) ----------
+
+export interface Market {
+  code: string;
+  name: string;
+  /** Language listings are written in, e.g. 'sv'. */
+  listingLanguage: string;
+  /** ISO 4217, e.g. 'SEK'. */
+  currencyCode: string;
+  /** Number/date formatting, e.g. 'sv-SE'. */
+  locale: string;
+  isCurrent: boolean;
+}
+
+export interface PlatformInfo {
+  code: Platform;
+  marketCode: string;
+  name: string;
+  /** Stripe / bar colour. */
+  colorStrong: string;
+  /** Pill / toggle background. */
+  colorTint: string;
+  /** Text on the tint. */
+  colorText: string;
+  sortOrder: number;
+  isEnabled: boolean;
+}
+
+export interface ConditionInfo {
+  code: Condition;
+  sortOrder: number;
+  /** language → label, e.g. { sv: 'Mycket bra skick', en: 'Very good' } */
+  labels: Record<string, string>;
+}
+
+export interface Catalog {
+  markets: Market[];
+  platforms: PlatformInfo[];
+  conditions: ConditionInfo[];
 }
 
 /** Filter used by the Active and Sold group rows. */

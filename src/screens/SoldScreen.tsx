@@ -4,7 +4,7 @@ import { GroupSelect } from '../components/GroupSelect';
 import { Pinned } from '../components/Pinned';
 import { useStore } from '../data/store';
 import { thisMonth } from '../lib/dates';
-import { digitsOnly, kr, monthYear } from '../lib/format';
+import { digitsOnly, monthYear } from '../lib/format';
 import { daysToSell, filterLabel, matchesFilter, soldItems, soldPrice, sortSold, sum } from '../lib/stats';
 import type { GroupFilter } from '../lib/types';
 
@@ -15,7 +15,7 @@ interface Props {
 }
 
 export function SoldScreen({ filter, onFilter, onOpen }: Props) {
-  const { items, groups, addPastSale } = useStore();
+  const { items, groups, addPastSale, money } = useStore();
   const [pastOpen, setPastOpen] = useState(false);
   const [pastCount, setPastCount] = useState(0);
   const [past, setPast] = useState({ title: '', price: '', month: thisMonth(), groupId: null as string | null });
@@ -124,7 +124,7 @@ export function SoldScreen({ filter, onFilter, onOpen }: Props) {
                 {dts === null ? 'backfilled' : `${dts} days to sell`}
               </span>
             </div>
-            <span className="row-price">{kr(soldPrice(item))}</span>
+            <span className="row-price">{money(soldPrice(item), item.currencyCode)}</span>
           </button>
         );
       })}
@@ -132,7 +132,7 @@ export function SoldScreen({ filter, onFilter, onOpen }: Props) {
         <span className="label">
           {filterLabel(filter, groups)} · {rows.length} items
         </span>
-        <span className="row-price">{kr(sum(rows, soldPrice))}</span>
+        <span className="row-price">{money(sum(rows, soldPrice))}</span>
       </div>
     </div>
   );

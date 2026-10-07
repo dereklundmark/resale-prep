@@ -1,15 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { daysBetween, today } from './dates';
-import { kr, monthYear } from './format';
+import { currencySymbol, money, monthYear } from './format';
+import { upgradeItem } from '../data/legacyLocal';
 import { daysListed, daysToSell, groupSummaries, matchesFilter, sortActive, sortSold } from './stats';
 import type { Group, Item } from './types';
 
 function item(over: Partial<Item>): Item {
   return {
     id: Math.random().toString(36),
+    marketCode: 'SE',
+    currencyCode: 'SEK',
+    listingLanguage: 'sv',
     title: 'x',
     description: '',
-    condition: 'Bra skick',
+    condition: 'good',
     groupId: null,
     platforms: [],
     categories: {},
@@ -40,8 +44,13 @@ describe('dates', () => {
 });
 
 describe('format', () => {
-  it('uses Swedish thousands grouping', () => {
-    expect(kr(1200).replace(/\s/g, ' ')).toBe('1 200 kr');
+  // Intl uses non-breaking spaces; normalise them for the comparison.
+  const plain = (s: string) => s.replace(/\s/g, ' ');
+  it('formats money per currency and locale', () => {
+    expect(plain(money(1200))).toBe('1 200 kr');
+    expect(plain(money(1200, 'EUR', 'de-DE'))).toBe('1.200 €');
+    expect(plain(money(12.5, 'EUR', 'de-DE'))).toBe('12,50 €');
+    expect(currencySymbol('SEK', 'sv-SE')).toBe('kr');
   });
   it('formats month', () => {
     expect(monthYear('2026-09-14')).toBe('Sep 2026');
@@ -85,5 +94,17 @@ describe('stats', () => {
     expect(garage).toMatchObject({ name: 'Garage', revenue: 500, askTotal: 300 });
     expect(garage.sold).toHaveLength(1);
     expect(ungrouped).toMatchObject({ groupId: null, name: 'Ungrouped', revenue: 200, askTotal: 0 });
+  });
+});
+
+describe('legacy data', () => {
+  const se = { code: 'SE', name: 'Sweden', listingLanguage: 'sv', currencyCode: 'SEK', locale: 'sv-SE', isCurrent: true };
+  it('upgrades a pre-database item: Swedish condition label to code, market added', () => {
+    const old = { id: 'a', title: 't', condition: 'Mycket bra skick', status: 'active' };
+    expect(upgradeItem(old, se)).toMatchObject({ condition: 'very_good', marketCode: 'SE', currencyCode: 'SEK', listingLanguage: 'sv' });
+  });
+  it('keeps items that are already in the new shape', () => {
+    const cur = { id: 'b', condition: 'good', marketCode: 'DE', currencyCode: 'EUR', listingLanguage: 'de' };
+    expect(upgradeItem(cur, se)).toMatchObject({ condition: 'good', marketCode: 'DE', currencyCode: 'EUR' });
   });
 });

@@ -1,5 +1,17 @@
 import { createContext, useContext } from 'react';
-import type { Condition, Estimate, Group, IsoDate, Item, Photo, Platform } from '../lib/types';
+import type {
+  Catalog,
+  Condition,
+  ConditionInfo,
+  Estimate,
+  Group,
+  IsoDate,
+  Item,
+  Market,
+  PhotoUpload,
+  Platform,
+  PlatformInfo,
+} from '../lib/types';
 
 export interface NewListing {
   title: string;
@@ -10,7 +22,7 @@ export interface NewListing {
   categories: Partial<Record<Platform, string>>;
   priceListed: number;
   aiEstimate: Estimate | null;
-  photos: Photo[];
+  photos: PhotoUpload[];
 }
 
 export interface PastSale {
@@ -21,8 +33,33 @@ export interface PastSale {
   groupId: string | null;
 }
 
+/** Items to add from before the database (old browser data or a backup file). */
+export interface ImportBatch {
+  items: Item[];
+  groups: Group[];
+  photos: Map<string, { full: Blob; thumb: Blob }>;
+}
+
 export interface Store {
   loaded: boolean;
+  /** Set when the first load failed; the app shows it with a Retry button. */
+  loadError: string | null;
+  /** True while the database is resuming from its pause. */
+  waking: boolean;
+
+  catalog: Catalog;
+  /** The market new items are created in. */
+  market: Market;
+  /** Enabled platforms of the current market, in display order. */
+  activePlatforms: PlatformInfo[];
+  /** Conditions, best first. */
+  conditions: ConditionInfo[];
+  platform(code: Platform): PlatformInfo;
+  /** Label in the market's listing language, e.g. 'Mycket bra skick'; '—' for none. */
+  conditionLabel(code: Condition | null): string;
+  /** Formats an amount; defaults to the current market's currency. */
+  money(amount: number, currency?: string): string;
+
   items: Item[];
   groups: Group[];
   addGroup(name: string): Promise<Group>;
@@ -32,6 +69,8 @@ export interface Store {
   /** Saves an edited item (same id). */
   updateItem(item: Item): Promise<void>;
   deleteItem(id: string): Promise<void>;
+  /** Adds items that aren't in the database yet; returns how many were added. */
+  importItems(batch: ImportBatch): Promise<number>;
   reload(): Promise<void>;
 }
 

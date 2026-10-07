@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useStore } from '../data/store';
-import { CONDITIONS } from '../lib/constants';
 import { thisMonth, today } from '../lib/dates';
 import { digitsOnly } from '../lib/format';
 import type { Condition, Item } from '../lib/types';
@@ -14,7 +13,7 @@ interface Props {
 
 /** Edit mode of the detail sheet. Fields depend on for-sale vs sold. */
 export function EditItemForm({ item, onCancel, onSaved }: Props) {
-  const { updateItem } = useStore();
+  const { updateItem, conditions, conditionLabel } = useStore();
   const sold = item.status === 'sold';
   const [title, setTitle] = useState(item.title);
   const [groupId, setGroupId] = useState(item.groupId);
@@ -84,12 +83,12 @@ export function EditItemForm({ item, onCancel, onSaved }: Props) {
           <select
             className="line-select"
             value={condition ?? ''}
-            onChange={(e) => setCondition((e.target.value || null) as Condition | null)}
+            onChange={(e) => setCondition(e.target.value || null)}
           >
             <option value="">—</option>
-            {CONDITIONS.map((c) => (
-              <option key={c} value={c}>
-                {c}
+            {conditions.map((c) => (
+              <option key={c.code} value={c.code}>
+                {conditionLabel(c.code)}
               </option>
             ))}
           </select>

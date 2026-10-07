@@ -4,16 +4,17 @@ import type { Condition, Estimate, Platform } from './types';
 
 export interface GenerateInput {
   name: string;
+  /** A condition code, e.g. 'very_good'. */
   condition: Condition;
-  /** Only these platforms get a category suggestion. */
+  /** Platform codes; only these get a category suggestion. */
   platforms: Platform[];
   photos: Blob[];
 }
 
 export interface Suggestion {
-  /** Swedish. */
+  /** In the market's listing language (Swedish for Sweden). */
   title: string;
-  /** Swedish. */
+  /** In the market's listing language. */
   description: string;
   /** Best match first; the UI adds "Other…" at the end. */
   categories: Partial<Record<Platform, string[]>>;

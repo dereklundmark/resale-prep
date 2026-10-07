@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DetailSheet } from './components/DetailSheet';
-import { PinnedSlot } from './components/Pinned';
+import { PinnedSlot } from './components/pinnedSlot';
 import { useStore } from './data/store';
-import { kr } from './lib/format';
 import { activeItems, matchesFilter, soldItems, soldPrice, sum } from './lib/stats';
 import type { GroupFilter } from './lib/types';
 import { ActiveScreen } from './screens/ActiveScreen';
@@ -52,6 +51,16 @@ export function App() {
   }, []);
   useEffect(() => () => window.clearTimeout(toastTimer.current), []);
 
+  // Any save that fails (no connection, database rule, server error) and isn't
+  // handled on the spot shows its message here instead of failing silently.
+  useEffect(() => {
+    const onFail = (e: PromiseRejectionEvent) => {
+      flash(e.reason instanceof Error ? e.reason.message : 'Something went wrong. Try again.');
+    };
+    window.addEventListener('unhandledrejection', onFail);
+    return () => window.removeEventListener('unhandledrejection', onFail);
+  }, [flash]);
+
   const go = (t: Tab) => {
     setTab(t);
     setSell(null);
@@ -84,7 +93,7 @@ export function App() {
     new: 'New listing',
     active: `${activeItems(store.items).length} for sale`,
     sold: `${soldItems(store.items).length} sold`,
-    total: kr(revenue),
+    total: store.money(revenue),
   };
 
   return (
@@ -107,7 +116,24 @@ export function App() {
           </div>
 
           {!store.loaded ? (
-            <div className="loading">…</div>
+            <div className="loading" role="status">
+              {store.loadError ? (
+                <>
+                  <span className="loading-error">{store.loadError}</span>
+                  <button type="button" className="retry" onClick={() => void store.reload()}>
+                    Retry
+                  </button>
+                </>
+              ) : store.waking ? (
+                <>
+                  <span>Waking up</span>
+                  <span>the database</span>
+                  <span>…</span>
+                </>
+              ) : (
+                '…'
+              )}
+            </div>
           ) : (
             <>
               {tab === 'new' && (
@@ -129,7 +155,7 @@ export function App() {
                   sell={sell}
                   onSell={setSell}
                   onOpen={setDetailId}
-                  onSold={(price) => flash(`+${kr(price)}`)}
+                  onSold={(price) => flash(`+${store.money(price)}`)}
                 />
               )}
               {tab === 'sold' && <SoldScreen filter={soldFilter} onFilter={setSoldFilter} onOpen={setDetailId} />}
@@ -141,9 +167,10 @@ export function App() {
 
         {/* Bottom dock: toast (floats just above it), pinned action band, tab bar. */}
         <div className="dock">
-          {toast && (
+          {/* The free database sleeps after an hour; say so while it resumes. */}
+          {(toast || (store.loaded && store.waking)) && (
             <div className="toast" role="status">
-              {toast}
+              {toast ?? 'Waking up the database…'}
             </div>
           )}
           <div ref={setPinnedSlot} />

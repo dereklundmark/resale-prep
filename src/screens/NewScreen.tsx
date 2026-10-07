@@ -2,12 +2,11 @@ import { useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { GroupSelect } from '../components/GroupSelect';
 import { Pinned } from '../components/Pinned';
 import { useStore } from '../data/store';
-import { CONDITIONS, PLATFORM_LABEL, PLATFORM_STRONG, PLATFORM_TEXT, PLATFORM_TINT, PLATFORMS } from '../lib/constants';
 import { digitsOnly, num } from '../lib/format';
 import { GenerateError, generateSuggestion } from '../lib/generate';
 import { newId } from '../lib/id';
 import { compressPhoto } from '../lib/image';
-import type { Condition, Platform } from '../lib/types';
+import type { Platform } from '../lib/types';
 import { emptyDraft, releaseDraftPhotos, type DraftPhoto, type NewDraft } from './newDraft';
 
 const OTHER = '__other__';
@@ -19,15 +18,17 @@ interface Props {
 }
 
 export function NewScreen({ draft, setDraft, onSaved }: Props) {
-  const { saveListing } = useStore();
+  const { saveListing, activePlatforms, conditions, conditionLabel, market } = useStore();
   const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
   const addInput = useRef<HTMLInputElement>(null);
   const replaceInput = useRef<HTMLInputElement>(null);
   const titleRef = useRef<HTMLTextAreaElement>(null);
   const priceRef = useRef<HTMLInputElement>(null);
 
   const set = (patch: Partial<NewDraft>) => setDraft((d) => ({ ...d, ...patch }));
-  const checked = PLATFORMS.filter((p) => draft.platforms[p]);
+  const checked = activePlatforms.filter((p) => !draft.platformsOff.includes(p.code)).map((p) => p.code);
+  const platformInfo = (code: Platform) => activePlatforms.find((p) => p.code === code);
 
   // ---- photos ----
   const readFiles = async (files: FileList | null): Promise<DraftPhoto[]> => {
@@ -89,7 +90,7 @@ export function NewScreen({ draft, setDraft, onSaved }: Props) {
       setDraft((d) => {
         const categories = { ...d.categories };
         const categoriesOther = { ...d.categoriesOther };
-        for (const p of PLATFORMS) {
+        for (const p of Object.keys(s.categories)) {
           if (!d.categoriesOk[p]) {
             categories[p] = s.categories[p]?.[0];
             categoriesOther[p] = false;
@@ -129,23 +130,32 @@ export function NewScreen({ draft, setDraft, onSaved }: Props) {
   };
 
   const save = async () => {
-    if (!canSave) return;
+    if (!canSave || saving) return;
     const categories: Partial<Record<Platform, string>> = {};
     for (const p of checked) {
       const c = draft.categories[p]?.trim();
       if (c) categories[p] = c;
     }
-    await saveListing({
-      title: draft.title.trim(),
-      description: draft.description.trim(),
-      condition: draft.condition,
-      groupId: draft.groupId,
-      platforms: checked,
-      categories,
-      priceListed: Number(draft.ask),
-      aiEstimate: draft.estimate,
-      photos: draft.photos.map(({ id, full, thumb }) => ({ id, full, thumb, createdAt: new Date().toISOString() })),
-    });
+    setSaving(true);
+    set({ error: null });
+    try {
+      await saveListing({
+        title: draft.title.trim(),
+        description: draft.description.trim(),
+        condition: draft.condition,
+        groupId: draft.groupId,
+        platforms: checked,
+        categories,
+        priceListed: Number(draft.ask),
+        aiEstimate: draft.estimate,
+        photos: draft.photos.map(({ id, full, thumb }) => ({ id, full, thumb })),
+      });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : 'Saving failed. Try again.' });
+      return;
+    } finally {
+      setSaving(false);
+    }
     releaseDraftPhotos(draft.photos);
     setDraft(emptyDraft());
     onSaved();
@@ -209,9 +219,9 @@ export function NewScreen({ draft, setDraft, onSaved }: Props) {
                   setDraft((d) => ({ ...d, ...patch, categoriesOk: { ...d.categoriesOk, [p]: true } }));
                 return (
                   <div key={p} className="cat-row">
-                    <div className="cat-stripe" style={{ background: PLATFORM_STRONG[p] }} />
+                    <div className="cat-stripe" style={{ background: platformInfo(p)?.colorStrong }} />
                     <div className={`cat-body draftable ${draft.categoriesOk[p] ? 'ok' : ''}`}>
-                      <span className="label ink">{PLATFORM_LABEL[p]}</span>
+                      <span className="label ink">{platformInfo(p)?.name ?? p}</span>
                       <select
                         value={other ? OTHER : (draft.categories[p] ?? '')}
                         onChange={(e) =>
@@ -251,7 +261,7 @@ export function NewScreen({ draft, setDraft, onSaved }: Props) {
             <div className="estimate">
               <span className="label">AI estimate</span>
               <span className="range">
-                {num(draft.estimate.low)}–{num(draft.estimate.high)}
+                {num(draft.estimate.low, market.locale)}–{num(draft.estimate.high, market.locale)}
               </span>
               <span className="why">{draft.estimate.reasoning}</span>
             </div>
@@ -276,7 +286,7 @@ export function NewScreen({ draft, setDraft, onSaved }: Props) {
               what takes you to the missing field. */}
           <button
             type="button"
-            className={`band ${canSave ? '' : 'band-waiting'}`}
+            className={`band ${canSave && !saving ? '' : 'band-waiting'}`}
             aria-disabled={!canSave}
             onClick={() => (canSave ? void save() : showMissing())}
           >
@@ -362,11 +372,11 @@ export function NewScreen({ draft, setDraft, onSaved }: Props) {
             <select
               className="line-select"
               value={draft.condition}
-              onChange={(e) => set({ condition: e.target.value as Condition })}
+              onChange={(e) => set({ condition: e.target.value })}
             >
-              {CONDITIONS.map((c) => (
-                <option key={c} value={c}>
-                  {c}
+              {conditions.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {conditionLabel(c.code)}
                 </option>
               ))}
             </select>
@@ -379,18 +389,22 @@ export function NewScreen({ draft, setDraft, onSaved }: Props) {
       </div>
 
       <div className="plat-toggles">
-        {PLATFORMS.map((p) => {
-          const on = draft.platforms[p];
+        {activePlatforms.map((p) => {
+          const on = !draft.platformsOff.includes(p.code);
           return (
             <button
-              key={p}
+              key={p.code}
               type="button"
               className={`plat-toggle ${on ? 'on' : ''}`}
               aria-pressed={on}
-              style={on ? { background: PLATFORM_TINT[p], color: PLATFORM_TEXT[p] } : undefined}
-              onClick={() => set({ platforms: { ...draft.platforms, [p]: !on } })}
+              style={on ? { background: p.colorTint, color: p.colorText } : undefined}
+              onClick={() =>
+                set({
+                  platformsOff: on ? [...draft.platformsOff, p.code] : draft.platformsOff.filter((c) => c !== p.code),
+                })
+              }
             >
-              <span className="name">{PLATFORM_LABEL[p]}</span>
+              <span className="name">{p.name}</span>
               <span className="state">{on ? 'On' : 'Off'}</span>
             </button>
           );

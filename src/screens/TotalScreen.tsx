@@ -1,9 +1,10 @@
-import { useRef, useState } from 'react';
-import { exportBackup, importBackup } from '../data/backup';
+import { useEffect, useRef, useState } from 'react';
+import { exportBackup, readBackup } from '../data/backup';
+import { clearLocal, readLocal, type LocalData } from '../data/legacyLocal';
 import { useStore } from '../data/store';
 import { GROUP_SHADES } from '../lib/constants';
 import { today } from '../lib/dates';
-import { kr } from '../lib/format';
+import { currencySymbol } from '../lib/format';
 import { activeItems, groupSummaries, soldItems } from '../lib/stats';
 
 interface Props {
@@ -14,9 +15,21 @@ interface Props {
 const UNGROUPED_KEY = '__ungrouped__';
 
 export function TotalScreen({ onOpen, onToast }: Props) {
-  const { items, groups, reload } = useStore();
+  const { items, groups, market, money, importItems } = useStore();
   const [openKey, setOpenKey] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
   const importInput = useRef<HTMLInputElement>(null);
+
+  // Items saved in this browser before the database existed (layers 1–2).
+  // Offered once, here, to move into the database.
+  const [local, setLocal] = useState<LocalData | null>(null);
+  useEffect(() => {
+    let live = true;
+    void readLocal(market).then((d) => live && setLocal(d.items.length ? d : null));
+    return () => {
+      live = false;
+    };
+  }, [market]);
 
   const sold = soldItems(items);
   const total = items.length;
@@ -25,7 +38,16 @@ export function TotalScreen({ onOpen, onToast }: Props) {
   const revenue = summaries.reduce((a, g) => a + g.revenue, 0);
 
   const doExport = async () => {
-    const blob = await exportBackup();
+    setBusy('Exporting…');
+    let blob: Blob;
+    try {
+      blob = await exportBackup(items, groups);
+    } catch (e) {
+      onToast(e instanceof Error ? e.message : 'Export failed');
+      return;
+    } finally {
+      setBusy(null);
+    }
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `resale-backup-${today()}.json`;
@@ -33,22 +55,47 @@ export function TotalScreen({ onOpen, onToast }: Props) {
     setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
   };
 
+  // Adds the backup's items that aren't in the database yet; never deletes.
   const doImport = async (file: File | undefined) => {
     if (!file) return;
-    if (!window.confirm('Replace everything in this browser with the backup? This cannot be undone.')) return;
+    let batch;
     try {
-      await importBackup(file);
-      await reload();
-      onToast('Backup imported');
+      batch = await readBackup(file, market);
     } catch {
       onToast('Not a backup file');
+      return;
+    }
+    if (!window.confirm(`Add the items from this backup (${batch.items.length}) that aren't saved yet?`)) return;
+    setBusy('Importing…');
+    try {
+      const added = await importItems(batch);
+      onToast(`Backup imported · ${added} added`);
+    } catch (e) {
+      onToast(e instanceof Error ? e.message : 'Import failed');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const moveLocal = async () => {
+    if (!local) return;
+    setBusy('Moving…');
+    try {
+      const added = await importItems(local);
+      await clearLocal();
+      setLocal(null);
+      onToast(`Moved ${added} to the database`);
+    } catch (e) {
+      onToast(e instanceof Error ? e.message : 'Moving failed. Try again.');
+    } finally {
+      setBusy(null);
     }
   };
 
   return (
     <div className="dash">
       <div className="dash-sub">
-        kr earned · {sold.length} of {total} items sold
+        {currencySymbol(market.currencyCode, market.locale)} earned · {sold.length} of {total} items sold
       </div>
 
       <div className="stack8">
@@ -92,14 +139,14 @@ export function TotalScreen({ onOpen, onToast }: Props) {
                   <span className="c">
                     {g.sold.length}/{g.sold.length + g.active.length}
                   </span>
-                  <span className="r">{kr(g.revenue)}</span>
+                  <span className="r">{money(g.revenue)}</span>
                   <span className="caret">{open ? '–' : '+'}</span>
                 </button>
                 {open && (
                   <div className="grp-body">
                     <div>
                       <div className="grp-sub-head sold">
-                        <span>Sold · {kr(g.revenue)}</span>
+                        <span>Sold · {money(g.revenue)}</span>
                         <span>{g.sold.length} items</span>
                       </div>
                       {g.sold.map((x) => (
@@ -108,14 +155,14 @@ export function TotalScreen({ onOpen, onToast }: Props) {
                             <span className="status-tag sold">sold</span>
                             {x.title}
                           </span>
-                          <span className="p">{kr(x.priceSold ?? 0)}</span>
+                          <span className="p">{money(x.priceSold ?? 0)}</span>
                         </button>
                       ))}
                       {g.sold.length === 0 && <div className="grp-empty">Nothing sold yet</div>}
                     </div>
                     <div>
                       <div className="grp-sub-head muted">
-                        <span>For sale · {kr(g.askTotal)} asking</span>
+                        <span>For sale · {money(g.askTotal)} asking</span>
                         <span>{g.active.length} items</span>
                       </div>
                       {g.active.map((x) => (
@@ -124,7 +171,7 @@ export function TotalScreen({ onOpen, onToast }: Props) {
                             <span className="status-tag">for sale</span>
                             {x.title}
                           </span>
-                          <span className="p">{kr(x.priceListed ?? 0)}</span>
+                          <span className="p">{money(x.priceListed ?? 0)}</span>
                         </button>
                       ))}
                       {g.active.length === 0 && <div className="grp-empty">All sold</div>}
@@ -136,12 +183,21 @@ export function TotalScreen({ onOpen, onToast }: Props) {
           })}
           <div className="grand">
             <span className="a">All</span>
-            <span className="v">{kr(revenue)}</span>
+            <span className="v">{money(revenue)}</span>
           </div>
         </div>
       </div>
 
       <div className="housekeeping">
+        {local && (
+          <button type="button" className="move-local" disabled={!!busy} onClick={() => void moveLocal()}>
+            <span>
+              {local.items.length} item{local.items.length === 1 ? '' : 's'} saved on this phone before the database
+            </span>
+            <span>Move them →</span>
+          </button>
+        )}
+        {busy && <div>{busy}</div>}
         <div className="backup">
           Backup:{' '}
           <button type="button" onClick={() => void doExport()}>

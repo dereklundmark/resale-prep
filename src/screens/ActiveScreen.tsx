@@ -2,9 +2,9 @@ import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { GroupFilterRow } from '../components/GroupFilterRow';
 import { PhotoImg } from '../components/PhotoImg';
 import { useStore } from '../data/store';
-import { PLATFORM_STRONG, STALE_DAYS } from '../lib/constants';
+import { STALE_DAYS } from '../lib/constants';
 import { today } from '../lib/dates';
-import { dayMonth, digitsOnly, kr } from '../lib/format';
+import { dayMonth, digitsOnly } from '../lib/format';
 import { activeItems, daysListed, matchesFilter, sortActive } from '../lib/stats';
 import type { GroupFilter, Item } from '../lib/types';
 import { startSell, type LeftMode, type SellState } from './sell';
@@ -23,7 +23,7 @@ interface Props {
 const SWIPE_THRESHOLD = 30;
 
 export function ActiveScreen({ filter, onFilter, leftMode, sell, onSell, onOpen, onSold }: Props) {
-  const { items, groups, markSold } = useStore();
+  const { items, groups, markSold, money, platform } = useStore();
   const onDay = today();
   const rows = sortActive(activeItems(items).filter((i) => matchesFilter(i, filter)), onDay);
   const groupName = (id: string | null) => groups.find((g) => g.id === id)?.name ?? 'Ungrouped';
@@ -135,12 +135,12 @@ export function ActiveScreen({ filter, onFilter, leftMode, sell, onSell, onOpen,
                   </span>
                   <div className="stripes">
                     {item.platforms.map((p) => (
-                      <span key={p} style={{ background: PLATFORM_STRONG[p] }} />
+                      <span key={p} style={{ background: platform(p).colorStrong }} />
                     ))}
                   </div>
                 </div>
                 <div className="row-right">
-                  <span className="row-price">{kr(item.priceListed ?? 0)}</span>
+                  <span className="row-price">{money(item.priceListed ?? 0, item.currencyCode)}</span>
                 </div>
               </div>
             </div>

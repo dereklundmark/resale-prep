@@ -150,11 +150,46 @@ select {
   font-size: 44px;
 }
 .loading {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
   padding: 30px 20px;
   color: var(--pending);
   font-size: 30px;
   font-weight: 500;
+  line-height: 1;
   text-transform: uppercase;
+}
+.loading .loading-error {
+  font-size: 15px;
+  line-height: 1.4;
+  text-transform: none;
+  color: var(--stale);
+}
+.loading .retry {
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-transform: none;
+  color: var(--ink);
+}
+/* "N items saved on this phone before the database · Move them →" */
+.move-local {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 6px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+}
+.move-local:disabled {
+  background: var(--disabled);
 }
 
 /* segmented Days / Photo switch */

@@ -19,7 +19,8 @@ export interface NewDraft {
   name: string;
   condition: Condition;
   groupId: string | null;
-  platforms: Record<Platform, boolean>;
+  /** Platforms switched off for this listing; every enabled platform starts on. */
+  platformsOff: Platform[];
   stage: 'form' | 'generating' | 'result';
   error: string | null;
 
@@ -42,7 +43,7 @@ export function emptyDraft(): NewDraft {
     name: '',
     condition: DEFAULT_CONDITION,
     groupId: null,
-    platforms: { tradera: true, blocket: true, facebook: true },
+    platformsOff: [],
     stage: 'form',
     error: null,
     title: '',

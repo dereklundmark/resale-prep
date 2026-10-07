@@ -1,7 +1,6 @@
-import { usePhotoUrl } from '../data/usePhotoUrl';
+import { photoUrl } from '../data/api';
 
-/** A stored photo, or nothing while it loads / if it's missing. */
+/** A stored photo, loaded from the API (the browser caches it). */
 export function PhotoImg({ id, variant, alt = '' }: { id: string | undefined; variant: 'full' | 'thumb'; alt?: string }) {
-  const url = usePhotoUrl(id, variant);
-  return url ? <img src={url} alt={alt} draggable={false} /> : null;
+  return id ? <img src={photoUrl(id, variant)} alt={alt} loading="lazy" draggable={false} /> : null;
 }

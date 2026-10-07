@@ -29,14 +29,15 @@ it with `@vite-pwa/assets-generator`.
 
 - **Cost: must be 100% free.** Only use services with a permanent free tier.
 - **Built in layers**, each usable on its own:
-  1. **Frontend** ✅ All screens. Data in this browser (IndexedDB).
+  1. **Frontend** ✅ All screens.
   2. **Gemini** ✅ `api/src/functions/generate.ts` (Azure Functions) calls Gemini (free tier)
-     server-side with a JSON schema, so the key never reaches the browser. Model is set by
-     `GEMINI_MODEL` in `local.settings.json`.
-  3. **Azure** Azure Static Web Apps (Free plan) + Azure SQL Database free offer (set to
-     **"Auto-pause the database until next month"**) + budget alert of 1 kr in Cost
-     Management → Budgets. Replace `src/data/db.ts` with API calls. Move existing data with
-     the Export/Import backup on the TOTAL screen.
+     server-side with a JSON schema, so the key never reaches the browser. Models are set by
+     `GEMINI_MODEL` / `GEMINI_FALLBACK_MODEL` in the Static Web App's environment variables.
+  3. **Azure** ✅ Azure Static Web Apps (Free plan) + Azure SQL Database free offer
+     (**"Auto-pause the database until next month"**) + budget alert of 1 kr. The app talks to
+     SQL only through the API in `api/` (see the table below); the database login is in the
+     `SQL_*` environment variables. Items saved in the browser before the database are moved
+     over once from the TOTAL screen ("Move them →").
   4. **Backfill** the 15 past sales.
 - **Photos are stored in Azure SQL**, not Blob Storage. Blob Storage is only free for 12
   months. Photos are shrunk on the phone to ~150 KB, so the 32 GB free SQL tier is plenty.
@@ -57,11 +58,15 @@ it with `@vite-pwa/assets-generator`.
 
 | Path | What |
 |---|---|
-| `src/lib/types.ts` | Data model (mirrors the planned SQL tables) |
+| `sql/` | Database scripts: tables (001), app login (002), starting data (003) |
+| `api/src/functions/` | The API: `config`, `items` (+ groups), `photos`, `generate` |
+| `api/src/lib/db.ts` | SQL connection; retries while the paused database wakes up |
+| `src/lib/types.ts` | Data model (mirrors the SQL tables and the API's JSON) |
 | `src/lib/stats.ts` | Everything derived: days listed, days to sell, group totals |
-| `src/lib/generate.ts` | The AI suggestion contract, API call + mock |
-| `api/src/functions/generate.ts` | The Gemini call (Azure Function) |
-| `src/data/db.ts` | Storage (IndexedDB now, API later) |
+| `src/lib/generate.ts` | The AI suggestion call from the app |
+| `src/data/api.ts` | Every request to the API; waits out a waking database |
+| `src/data/StoreProvider.tsx` | App data: loads from the API, saves through it |
+| `src/data/legacyLocal.ts` | Reads pre-database browser data and old backups |
 | `src/data/backup.ts` | Export / import of all data as JSON |
 | `src/screens/` | NEW, ACTIVE, SOLD, TOTAL |
 | `src/components/DetailSheet.tsx` | Item detail overlay (view, edit, delete) |

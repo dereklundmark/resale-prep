@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '../data/store';
-import { PLATFORM_LABEL, PLATFORM_TEXT, PLATFORM_TINT, STALE_DAYS } from '../lib/constants';
+import { STALE_DAYS } from '../lib/constants';
 import { today } from '../lib/dates';
-import { dayMonthYear, kr, monthYear } from '../lib/format';
+import { dayMonthYear, monthYear } from '../lib/format';
 import { daysListed } from '../lib/stats';
 import { EditItemForm } from './EditItemForm';
 import { PhotoImg } from './PhotoImg';
@@ -15,7 +15,7 @@ interface Props {
 }
 
 export function DetailSheet({ itemId, onClose, onMarkSold, onToast }: Props) {
-  const { items, groups, deleteItem } = useStore();
+  const { items, groups, deleteItem, money, platform, conditionLabel } = useStore();
   const item = items.find((i) => i.id === itemId);
   const [editing, setEditing] = useState(false);
   // Delete needs two taps: the first turns the link into "Tap again to delete".
@@ -36,13 +36,13 @@ export function DetailSheet({ itemId, onClose, onMarkSold, onToast }: Props) {
   const soldOn = item.dateSold ? (item.isBackfill ? monthYear(item.dateSold) : dayMonthYear(item.dateSold)) : '—';
   const facts = active
     ? [
-        ['Asking', kr(item.priceListed ?? 0)],
-        ['Condition', item.condition ?? '—'],
+        ['Asking', money(item.priceListed ?? 0, item.currencyCode)],
+        ['Condition', conditionLabel(item.condition)],
         ['Group', groupName],
       ]
     : [
-        ['Sold for', kr(item.priceSold ?? 0)],
-        ['Condition', item.condition ?? '—'],
+        ['Sold for', money(item.priceSold ?? 0, item.currencyCode)],
+        ['Condition', conditionLabel(item.condition)],
         ['Sold', soldOn],
       ];
   const categories = item.platforms.filter((p) => item.categories[p]);
@@ -116,8 +116,8 @@ export function DetailSheet({ itemId, onClose, onMarkSold, onToast }: Props) {
               {item.platforms.length > 0 && (
                 <div className="pills">
                   {item.platforms.map((p) => (
-                    <span key={p} className="pill" style={{ background: PLATFORM_TINT[p], color: PLATFORM_TEXT[p] }}>
-                      {PLATFORM_LABEL[p]}
+                    <span key={p} className="pill" style={{ background: platform(p).colorTint, color: platform(p).colorText }}>
+                      {platform(p).name}
                     </span>
                   ))}
                 </div>
@@ -135,7 +135,7 @@ export function DetailSheet({ itemId, onClose, onMarkSold, onToast }: Props) {
                   <div className="sheet-cats">
                     {categories.map((p) => (
                       <span key={p}>
-                        {PLATFORM_LABEL[p]}: {item.categories[p]}
+                        {platform(p).name}: {item.categories[p]}
                       </span>
                     ))}
                   </div>
