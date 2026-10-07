@@ -28,7 +28,11 @@ export function TotalScreen({ photos, onOpen, onOpenPurchase, onToast }: Props) 
   const sold = soldItems(items);
   const total = items.length;
   const pct = total ? Math.round((sold.length / total) * 100) : 0;
-  const summaries = groupSummaries(items, groups, purchases);
+  // Ungrouped is always last, so dropping it when empty doesn't shift the
+  // other groups' colours.
+  const summaries = groupSummaries(items, groups, purchases).filter(
+    (g) => g.groupId !== null || g.sold.length + g.active.length > 0,
+  );
   // "kr earned" is sales only; purchases never change it.
   const revenue = summaries.reduce((a, g) => a + g.revenue, 0);
 

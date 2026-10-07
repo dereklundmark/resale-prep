@@ -4,6 +4,10 @@ Versions follow [semantic versioning](https://semver.org): **MAJOR.MINOR.PATCH**
 patch for fixes, minor for new features, major for big changes. The version shows in the
 footer of the TOTAL screen, next to the commit it was built from.
 
+## 1.2.1 (2026-10-07)
+
+- TOTAL hides the Ungrouped row when nothing is ungrouped.
+
 ## 1.2.0 (2026-10-07)
 
 - Generate wait: a large price tag sways from its hole ("Pricing it up…"), replacing the
