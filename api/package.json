@@ -1,7 +1,7 @@
 {
   "name": "resale-prep-api",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.1.1",
   "type": "module",
   "engines": {
     "node": ">=22"

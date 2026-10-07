@@ -4,6 +4,11 @@ Versions follow [semantic versioning](https://semver.org): **MAJOR.MINOR.PATCH**
 patch for fixes, minor for new features, major for big changes. The version shows in the
 footer of the TOTAL screen, next to the commit it was built from.
 
+## 1.1.1 (2026-10-07)
+
+- Sharper home-screen icon: each size is drawn with its straight edges on whole pixels
+  instead of scaled down from 512 px, which left a blurred grey line along every edge.
+
 ## 1.1.0 (2026-10-07)
 
 Group funds (design v3).
