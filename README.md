@@ -45,6 +45,11 @@ it with `@vite-pwa/assets-generator`.
 - **Login: owner only.** Static Web Apps built-in auth, with every route requiring a custom
   `owner` role that only your own account is invited to.
 - **Frontend:** React + Vite + TypeScript, installable as a home-screen app (PWA).
+- **Built to scale by data, not code.** Platforms, markets (country + listing language +
+  currency) and condition labels are rows in SQL (`dbo.platforms`, `dbo.markets`,
+  `dbo.condition_labels`). Adding Vinted or eBay, or moving country, is an INSERT (see
+  `sql/003_seed.sql`), not a code change. Each item keeps its own market, currency and
+  language.
 - **Source + CI/CD: all Microsoft.** Azure Repos + Azure Pipelines (free tier). A public
   GitHub copy is pushed by the pipeline for recruiters; GitHub is never the source of truth.
 
