@@ -265,7 +265,7 @@ app.http('item', {
     }
 
     const item = parseItem(await readJson(req), id);
-    await withDb((pool) =>
+    const photoIds = await withDb((pool) =>
       inTransaction(pool, async (tx) => {
         const r = await itemInputs(new sql.Request(tx), item).query(`
           UPDATE dbo.items SET
@@ -278,9 +278,15 @@ app.http('item', {
           WHERE id = @id;`);
         if (!r.rowsAffected[0]) throw new HttpError(404, 'Item not found');
         await replacePlatforms(tx, item);
+        // Photos aren't changed by an edit, but the reply must still list
+        // them: the app replaces its copy of the item with this reply.
+        const photos = await new sql.Request(tx)
+          .input('id', sql.UniqueIdentifier, item.id)
+          .query('SELECT id FROM dbo.photos WHERE item_id = @id ORDER BY position;');
+        return photos.recordset.map((p) => String(p.id).toLowerCase());
       }),
     );
-    return json(200, item);
+    return json(200, { ...item, photoIds });
   }),
 });
 

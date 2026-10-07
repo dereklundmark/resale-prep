@@ -22,7 +22,7 @@ the app or API locally was removed; commit 3802edc has the setup if it's ever wa
 The Gemini key lives in Azure: Static Web App → Settings → Environment variables
 (`GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FALLBACK_MODEL`). Never put it in the code.
 
-The app icon (an ink price tag) is drawn by `scripts/icons.mjs`, once per size with every straight
+The app icon (the outline price tag, also used for the Generate animation; Tabler Icons "tag", MIT) is drawn by `scripts/icons.mjs`, once per size with every straight
 edge on a whole pixel (scaling one big drawing down blurs the edges). To regenerate:
 `node scripts/icons.mjs <dir>`, then for each SVG in <dir>:
 `npx -p sharp-cli sharp -i <dir>/<name>.svg -o public/icons/<name>.png`.

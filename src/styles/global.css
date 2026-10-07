@@ -399,41 +399,30 @@ select {
   text-decoration: none;
 }
 
-/* Generating: the photo fills most of the screen and an ink line sweeps
-   over it like a scanner. */
-.scan {
-  position: relative;
-  margin: 0 20px;
-  height: min(58vh, 460px);
-  overflow: hidden;
-  background: repeating-linear-gradient(0deg, var(--photo-line) 0 1px, transparent 1px 9px), var(--photo);
+/* Generating: a big price tag sways from its hole, like it's hanging in a shop. */
+.tag-wait {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  min-height: min(60vh, 480px);
+  color: var(--ink);
 }
-.scan img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.tag-swing {
+  transform-origin: 31% 31%; /* the hole, at (7.5, 7.5) of 24 */
+  animation: tag-swing 1.6s ease-in-out infinite;
 }
-.scan-line {
-  position: absolute;
-  left: -4px;
-  right: -4px;
-  height: 3px;
-  background: var(--ink);
-  animation: scan 2.2s ease-in-out infinite;
-}
-@keyframes scan {
+@keyframes tag-swing {
   0%,
   100% {
-    top: 4%;
+    transform: rotate(-10deg);
   }
   50% {
-    top: 95%;
+    transform: rotate(10deg);
   }
 }
-.scan-caption {
-  padding: 14px 20px 0;
+.tag-caption {
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -441,9 +430,8 @@ select {
   color: var(--draft);
 }
 @media (prefers-reduced-motion: reduce) {
-  .scan-line {
+  .tag-swing {
     animation: none;
-    top: 50%;
   }
 }
 

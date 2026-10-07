@@ -76,7 +76,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const conditions = [...catalog.conditions].sort((a, b) => a.sortOrder - b.sortOrder);
 
     const upsert = (item: Item) => setItems((prev) => [item, ...prev.filter((i) => i.id !== item.id)]);
-    const put = async (item: Item) => upsert(await api.put<Item>(`/api/items/${item.id}`, item));
+    // An edit never changes photos, so keep the photo list we already have
+    // even if a reply ever comes back without it.
+    const put = async (item: Item) => {
+      const saved = await api.put<Item>(`/api/items/${item.id}`, item);
+      upsert({ ...saved, photoIds: saved.photoIds?.length ? saved.photoIds : item.photoIds });
+    };
     // A group can be deleted while a form still points at it; save such
     // items as Ungrouped rather than failing on the database's foreign key.
     const existingGroup = (id: string | null) => (id && groups.some((g) => g.id === id) ? id : null);

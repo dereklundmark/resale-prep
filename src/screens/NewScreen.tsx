@@ -1,6 +1,7 @@
 import { useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { GroupSelect } from '../components/GroupSelect';
 import { Pinned } from '../components/Pinned';
+import { TagSymbol } from '../components/TagSymbol';
 import { useStore } from '../data/store';
 import { digitsOnly, num } from '../lib/format';
 import { GenerateError, generateSuggestion } from '../lib/generate';
@@ -163,16 +164,14 @@ export function NewScreen({ draft, setDraft, onSaved }: Props) {
 
   // ---- render ----
   if (draft.stage === 'generating') {
-    // Photo scan: your photo, large, with an ink line sweeping over it while
-    // Gemini works. Without a photo it scans the striped placeholder.
-    const photo = draft.photos[0];
+    // A big price tag swaying gently, like it's hanging in a shop, while
+    // Gemini writes the listing.
     return (
       <div className="new">
-        <div className="scan" role="status" aria-label={photo ? 'Reading photo' : 'Writing listing'}>
-          {photo && <img src={photo.fullUrl} alt="" />}
-          <div className="scan-line" />
+        <div className="tag-wait" role="status" aria-label="Pricing it up">
+          <TagSymbol size={180} className="tag-swing" />
+          <span className="tag-caption">Pricing it up…</span>
         </div>
-        <div className="scan-caption">{photo ? 'Reading photo…' : 'Writing listing…'}</div>
       </div>
     );
   }

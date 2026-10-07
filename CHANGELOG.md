@@ -4,6 +4,15 @@ Versions follow [semantic versioning](https://semver.org): **MAJOR.MINOR.PATCH**
 patch for fixes, minor for new features, major for big changes. The version shows in the
 footer of the TOTAL screen, next to the commit it was built from.
 
+## 1.2.0 (2026-10-07)
+
+- Generate wait: a large price tag sways from its hole ("Pricing it up…"), replacing the
+  photo scan.
+- New home-screen icon: the same outline price tag in ink on cream.
+- Fix: editing an item or marking it sold no longer makes its photo disappear from the
+  lists. The photo was never deleted; the API's reply to an edit just left the photo list
+  out, and the app replaced its copy of the item with that reply.
+
 ## 1.1.2 (2026-10-07)
 
 - An expired login now sends you through GitHub sign-in and back automatically. Before,
