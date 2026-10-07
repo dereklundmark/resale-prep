@@ -1,6 +1,6 @@
 // Everything derived at render time — nothing here is ever stored.
 import { daysBetween } from './dates';
-import type { Group, GroupFilter, IsoDate, Item } from './types';
+import type { Group, GroupFilter, IsoDate, Item, Purchase } from './types';
 
 export function daysListed(item: Item, onDay: IsoDate): number {
   return item.dateListed ? daysBetween(item.dateListed, onDay) : 0;
@@ -57,20 +57,47 @@ export interface GroupSummary {
   name: string;
   sold: Item[];
   active: Item[];
+  /** Earned: sum of sold prices. */
   revenue: number;
   askTotal: number;
+  // Fund (design v3): a group's earnings minus what was bought with them.
+  purpose: string | null;
+  /** Newest first. */
+  purchases: Purchase[];
+  spent: number;
+  /** revenue - spent; negative when overspent. */
+  left: number;
+  /** Shows the fund UI: a purpose is set or something was bought. */
+  hasFund: boolean;
 }
 
 /** One entry per group in creation order, then Ungrouped (always present). */
-export function groupSummaries(items: Item[], groups: Group[]): GroupSummary[] {
-  const buckets: { groupId: string | null; name: string }[] = [
-    ...groups.map((g) => ({ groupId: g.id, name: g.name })),
-    { groupId: null, name: 'Ungrouped' },
+export function groupSummaries(items: Item[], groups: Group[], purchases: Purchase[] = []): GroupSummary[] {
+  const buckets: { groupId: string | null; name: string; purpose: string | null }[] = [
+    ...groups.map((g) => ({ groupId: g.id, name: g.name, purpose: g.purpose ?? null })),
+    { groupId: null, name: 'Ungrouped', purpose: null },
   ];
-  return buckets.map(({ groupId, name }) => {
+  return buckets.map(({ groupId, name, purpose }) => {
     const mine = items.filter((i) => i.groupId === groupId);
     const sold = sortSold(soldItems(mine));
     const active = activeItems(mine);
-    return { groupId, name, sold, active, revenue: sum(sold, soldPrice), askTotal: sum(active, askPrice) };
+    const bought = purchases
+      .filter((p) => groupId !== null && p.groupId === groupId)
+      .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+    const revenue = sum(sold, soldPrice);
+    const spent = bought.reduce((a, p) => a + p.amount, 0);
+    return {
+      groupId,
+      name,
+      sold,
+      active,
+      revenue,
+      askTotal: sum(active, askPrice),
+      purpose,
+      purchases: bought,
+      spent,
+      left: revenue - spent,
+      hasFund: groupId !== null && (purpose !== null || bought.length > 0),
+    };
   });
 }

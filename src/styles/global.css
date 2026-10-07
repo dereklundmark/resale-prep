@@ -997,6 +997,18 @@ select {
   flex: 1;
   min-width: 0;
   font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+/* "Photo gear fund · 2 120 kr left" under a group's name (design v3) */
+.fund-line {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sold);
+}
+.fund-line.over {
+  color: var(--stale);
 }
 .grp-head .c {
   font-size: 12px;
@@ -1083,6 +1095,157 @@ select {
   background: oklch(0.94 0.04 150);
   color: oklch(0.4 0.1 150);
 }
+/* Fund indicator at the top of an opened fund group */
+.fund {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fund-legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+}
+.fund-legend .left {
+  color: var(--sold);
+}
+.fund-legend .over {
+  color: var(--stale);
+}
+.fund-of {
+  font-size: 11px;
+  color: var(--inactive-tab);
+}
+.status-tag.bought {
+  padding: 2px 8px;
+  border: none;
+  background: var(--ink);
+  color: var(--bg);
+}
+.grp-date {
+  font-size: 12px;
+  color: var(--inactive-tab);
+}
+/* + Add purchase · Set purpose · Rename · Delete */
+.fund-links {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: -8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.fund-links button {
+  padding: 8px 0;
+  text-decoration: underline;
+}
+.fund-links .right {
+  display: flex;
+  gap: 12px;
+  color: var(--grey);
+}
+.fund-links .danger,
+.fund-form-links .danger {
+  color: var(--stale);
+}
+/* Dark "Add purchase" panel */
+.fund-add {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: -8px;
+  padding: 14px 16px 16px;
+  background: var(--ink);
+  color: var(--bg);
+}
+.fund-add-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #cfc8bc;
+}
+.fund-add-foot button {
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  color: #cfc8bc;
+}
+/* Cream inline forms: purpose, rename, delete */
+.fund-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: -8px;
+}
+.fund-input {
+  border: none;
+  border-bottom: 1.5px solid var(--ink);
+  border-radius: 0;
+  background: transparent;
+  outline: none;
+  padding: 0 0 6px;
+  font-weight: 600;
+  font-size: 17px;
+  width: 100%;
+}
+.fund-input.big {
+  font-size: 20px;
+}
+.fund-form-links {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+}
+.fund-form-links span {
+  display: flex;
+  gap: 14px;
+}
+.fund-form-links button {
+  padding: 6px 0;
+  text-decoration: underline;
+}
+.fund-form-links .muted {
+  color: var(--grey);
+}
+.delete-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--grey);
+}
+.delete-warn {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--stale);
+}
+/* Purchase sheet: slimmer than the item sheet (no photo) */
+.purchase-sheet {
+  padding: 16px 20px calc(40px + env(safe-area-inset-bottom));
+  gap: 16px;
+}
+.purchase-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.purchase-close {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--switch);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
 /* Optional thumbnail (List / Photo switch) */
 .grp-thumb,
 .sold-thumb {

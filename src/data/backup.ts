@@ -1,7 +1,7 @@
 // Export / import of everything as one JSON file, photos inlined as data
 // URLs. The database is the real home of the data; this is a personal copy
 // you can keep, and import adds back anything from it that's missing.
-import type { Group, Item } from '../lib/types';
+import type { Group, Item, Purchase } from '../lib/types';
 import { photoUrl } from './api';
 import type { ImportBatch } from './store';
 
@@ -11,7 +11,10 @@ interface BackupFile {
   version: 2;
   exportedAt: string;
   items: Item[];
+  /** Includes each group's purpose. */
   groups: Group[];
+  /** Fund purchases; missing in files exported before 1.1.0. */
+  purchases?: Purchase[];
   photos: { id: string; full: string; thumb: string }[];
 }
 
@@ -30,12 +33,20 @@ async function fetchPhoto(id: string, size: 'full' | 'thumb'): Promise<string> {
   return blobToDataUrl(await res.blob());
 }
 
-export async function exportBackup(items: Item[], groups: Group[]): Promise<Blob> {
+export async function exportBackup(items: Item[], groups: Group[], purchases: Purchase[]): Promise<Blob> {
   const photos: BackupFile['photos'] = [];
   for (const id of items.flatMap((i) => i.photoIds)) {
     photos.push({ id, full: await fetchPhoto(id, 'full'), thumb: await fetchPhoto(id, 'thumb') });
   }
-  const file: BackupFile = { app: 'resale-prep', version: 2, exportedAt: new Date().toISOString(), items, groups, photos };
+  const file: BackupFile = {
+    app: 'resale-prep',
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    items,
+    groups,
+    purchases,
+    photos,
+  };
   return new Blob([JSON.stringify(file)], { type: 'application/json' });
 }
 
@@ -56,6 +67,7 @@ export async function readBackup(file: Blob): Promise<ImportBatch> {
   return {
     items: data.items,
     groups: data.groups,
+    purchases: Array.isArray(data.purchases) ? data.purchases : [],
     photos,
   };
 }

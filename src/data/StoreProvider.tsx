@@ -3,9 +3,9 @@ import { UNKNOWN_PLATFORM_COLORS } from '../lib/constants';
 import { today } from '../lib/dates';
 import { money } from '../lib/format';
 import { newId } from '../lib/id';
-import type { Catalog, Group, Item, Market, PlatformInfo } from '../lib/types';
+import type { Catalog, Group, Item, Market, PlatformInfo, Purchase } from '../lib/types';
 import { ApiError, api, blobToBase64, onWaking } from './api';
-import { StoreContext, type ImportBatch, type NewListing, type PastSale, type Store } from './store';
+import { StoreContext, type ImportBatch, type NewListing, type NewPurchase, type PastSale, type Store } from './store';
 
 const EMPTY_CATALOG: Catalog = { markets: [], platforms: [], conditions: [] };
 
@@ -23,13 +23,14 @@ interface Loaded {
   catalog: Catalog;
   items: Item[];
   groups: Group[];
+  purchases: Purchase[];
 }
 
 function fetchAll(): Promise<Loaded> {
   return Promise.all([
     api.get<Catalog>('/api/config'),
-    api.get<{ items: Item[]; groups: Group[] }>('/api/items'),
-  ]).then(([catalog, data]) => ({ catalog, ...data }));
+    api.get<{ items: Item[]; groups: Group[]; purchases?: Purchase[] }>('/api/items'),
+  ]).then(([catalog, data]) => ({ catalog, ...data, purchases: data.purchases ?? [] }));
 }
 
 async function photoPayload(id: string, full: Blob, thumb: Blob) {
@@ -45,11 +46,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [catalog, setCatalog] = useState<Catalog>(EMPTY_CATALOG);
   const [items, setItems] = useState<Item[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
 
   const apply = useCallback((d: Loaded) => {
     setCatalog(d.catalog);
     setItems(d.items);
     setGroups(d.groups);
+    setPurchases(d.purchases);
     setLoaded(true);
     setLoadError(null);
   }, []);
@@ -130,11 +133,48 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setGroups((prev) => prev.map((g) => (g.id === id ? group : g)));
       },
 
-      async deleteGroup(id) {
-        await api.del(`/api/groups/${id}`);
+      async setGroupPurpose(id, purpose) {
+        const group = await api.put<Group>(`/api/groups/${id}`, { purpose: purpose?.trim() || null });
+        setGroups((prev) => prev.map((g) => (g.id === id ? group : g)));
+      },
+
+      async deleteGroup(id, moveTo) {
+        await api.del(`/api/groups/${id}${moveTo ? `?moveTo=${moveTo}` : ''}`);
         setGroups((prev) => prev.filter((g) => g.id !== id));
-        // Mirror the database (ON DELETE SET NULL): its items become Ungrouped.
-        setItems((prev) => prev.map((i) => (i.groupId === id ? { ...i, groupId: null } : i)));
+        // Mirror what the database did: items moved (or Ungrouped), purchases
+        // moved (or deleted along with the group).
+        setItems((prev) => prev.map((i) => (i.groupId === id ? { ...i, groupId: moveTo } : i)));
+        setPurchases((prev) =>
+          moveTo ? prev.map((p) => (p.groupId === id ? { ...p, groupId: moveTo } : p)) : prev.filter((p) => p.groupId !== id),
+        );
+      },
+
+      purchases,
+
+      async addPurchase({ groupId, title, amount, date }: NewPurchase) {
+        const purchase: Purchase = {
+          id: newId(),
+          groupId,
+          title: title.trim(),
+          amount,
+          currencyCode: market.currencyCode,
+          date,
+          notes: null,
+          createdAt: new Date().toISOString(),
+        };
+        const saved = await api.post<Purchase>('/api/purchases', purchase);
+        setPurchases((prev) => [saved, ...prev]);
+        return saved;
+      },
+
+      async updatePurchase(p) {
+        const saved = await api.put<Purchase>(`/api/purchases/${p.id}`, p);
+        setPurchases((prev) => prev.map((x) => (x.id === p.id ? saved : x)));
+      },
+
+      async deletePurchase(id) {
+        await api.del(`/api/purchases/${id}`);
+        setPurchases((prev) => prev.filter((x) => x.id !== id));
       },
 
       async saveListing({ photos, ...l }: NewListing) {
@@ -194,11 +234,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setItems((prev) => prev.filter((i) => i.id !== id));
       },
 
-      async importItems({ items: incoming, groups: incomingGroups, photos }: ImportBatch) {
+      async importItems({ items: incoming, groups: incomingGroups, purchases: incomingPurchases, photos }: ImportBatch) {
         // Groups are matched by name: the database may already have one
         // called "Garage Cleanout" under a different id.
         const groupIdMap = new Map<string, string>();
-        for (const g of incomingGroups) groupIdMap.set(g.id, (await addGroup(g.name)).id);
+        for (const g of incomingGroups) {
+          const group = await addGroup(g.name);
+          groupIdMap.set(g.id, group.id);
+          if (g.purpose && !group.purpose) {
+            const withPurpose = await api.put<Group>(`/api/groups/${group.id}`, { purpose: g.purpose });
+            setGroups((prev) => prev.map((x) => (x.id === group.id ? withPurpose : x)));
+          }
+        }
 
         const known = new Set(items.map((i) => i.id));
         let added = 0;
@@ -222,10 +269,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             throw e;
           }
         }
+
+        const knownPurchases = new Set(purchases.map((p) => p.id));
+        for (const p of incomingPurchases) {
+          const groupId = groupIdMap.get(p.groupId);
+          if (knownPurchases.has(p.id) || !groupId) continue;
+          try {
+            const saved = await api.post<Purchase>('/api/purchases', { ...p, groupId });
+            setPurchases((prev) => [saved, ...prev]);
+          } catch (e) {
+            if (e instanceof ApiError && e.status === 409) continue;
+            throw e;
+          }
+        }
         return added;
       },
     };
-  }, [loaded, loadError, waking, catalog, items, groups, reload]);
+  }, [loaded, loadError, waking, catalog, items, groups, purchases, reload]);
 
   return <StoreContext.Provider value={store}>{children}</StoreContext.Provider>;
 }

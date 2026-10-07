@@ -4,6 +4,21 @@ Versions follow [semantic versioning](https://semver.org): **MAJOR.MINOR.PATCH**
 patch for fixes, minor for new features, major for big changes. The version shows in the
 footer of the TOTAL screen, next to the commit it was built from.
 
+## 1.1.0 (2026-10-07)
+
+Group funds (design v3).
+
+- A group can double as a fund: give it a purpose (e.g. "Photo gear fund") and add
+  purchases paid from its earnings. TOTAL shows spent, left (or over) and a Bought section;
+  the "kr earned" totals stay sales-only.
+- Tap a purchase to edit it, move it to another group or delete it.
+- Deleting a group that still has items or purchases asks where to move them first.
+  Moving to Ungrouped keeps the items but deletes the purchases (a purchase needs a real
+  group), with a warning.
+- Database: `groups.purpose`, `purchases` table and `group_funds` view
+  (`sql/005_purchases.sql`). API: `/api/purchases`, group purpose, delete with `moveTo`.
+- Backups include purchases and purposes.
+
 ## 1.0.1 (2026-10-07)
 
 - The "database settings missing" message now names exactly which SQL_* setting is missing,

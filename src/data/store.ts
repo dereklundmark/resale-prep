@@ -11,6 +11,7 @@ import type {
   PhotoUpload,
   Platform,
   PlatformInfo,
+  Purchase,
 } from '../lib/types';
 
 export interface NewListing {
@@ -37,7 +38,15 @@ export interface PastSale {
 export interface ImportBatch {
   items: Item[];
   groups: Group[];
+  purchases: Purchase[];
   photos: Map<string, { full: Blob; thumb: Blob }>;
+}
+
+export interface NewPurchase {
+  groupId: string;
+  title: string;
+  amount: number;
+  date: IsoDate;
 }
 
 export interface Store {
@@ -64,15 +73,25 @@ export interface Store {
   groups: Group[];
   addGroup(name: string): Promise<Group>;
   renameGroup(id: string, name: string): Promise<void>;
-  /** Deletes the group; its items are kept and become Ungrouped. */
-  deleteGroup(id: string): Promise<void>;
+  /** Names the group's fund; null removes it. */
+  setGroupPurpose(id: string, purpose: string | null): Promise<void>;
+  /**
+   * Deletes the group after moving its items and purchases to moveTo.
+   * moveTo null: items become Ungrouped and purchases are deleted.
+   */
+  deleteGroup(id: string, moveTo: string | null): Promise<void>;
+
+  purchases: Purchase[];
+  addPurchase(p: NewPurchase): Promise<Purchase>;
+  updatePurchase(p: Purchase): Promise<void>;
+  deletePurchase(id: string): Promise<void>;
   saveListing(listing: NewListing): Promise<Item>;
   markSold(id: string, priceSold: number, dateSold: IsoDate): Promise<void>;
   addPastSale(sale: PastSale): Promise<void>;
   /** Saves an edited item (same id). */
   updateItem(item: Item): Promise<void>;
   deleteItem(id: string): Promise<void>;
-  /** Adds items that aren't in the database yet; returns how many were added. */
+  /** Adds items (and purchases) that aren't in the database yet; returns how many items were added. */
   importItems(batch: ImportBatch): Promise<number>;
   reload(): Promise<void>;
 }

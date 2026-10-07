@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DetailSheet } from './components/DetailSheet';
+import { PurchaseSheet } from './components/PurchaseSheet';
 import { PinnedSlot } from './components/pinnedSlot';
 import { useStore } from './data/store';
 import { activeItems, matchesFilter, soldItems, soldPrice, sum } from './lib/stats';
@@ -69,6 +70,7 @@ export function App() {
   const [totalPhotos, setTotalPhotosState] = useState(() => readPref(PREF_KEYS.totalPhotos) === '1');
   const [sell, setSell] = useState<SellState | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [purchaseId, setPurchaseId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [pinnedSlot, setPinnedSlot] = useState<HTMLDivElement | null>(null);
   const toastTimer = useRef<number | undefined>(undefined);
@@ -95,6 +97,7 @@ export function App() {
     setTab(t);
     setSell(null);
     setDetailId(null);
+    setPurchaseId(null);
     scrollRef.current?.scrollTo({ top: 0 });
   };
 
@@ -116,6 +119,7 @@ export function App() {
     typeof f === 'string' || store.groups.some((g) => g.id === f.groupId) ? f : 'all';
 
   const closeDetail = useCallback(() => setDetailId(null), []);
+  const closePurchase = useCallback(() => setPurchaseId(null), []);
 
   const markSoldFromDetail = (id: string) => {
     const item = store.items.find((i) => i.id === id);
@@ -199,7 +203,9 @@ export function App() {
               {tab === 'sold' && (
                 <SoldScreen photos={soldPhotos} filter={valid(soldFilter)} onFilter={setSoldFilter} onOpen={setDetailId} />
               )}
-              {tab === 'total' && <TotalScreen photos={totalPhotos} onOpen={setDetailId} onToast={flash} />}
+              {tab === 'total' && (
+                <TotalScreen photos={totalPhotos} onOpen={setDetailId} onOpenPurchase={setPurchaseId} onToast={flash} />
+              )}
             </>
           )}
           <div className="bottom-space" />
@@ -231,6 +237,7 @@ export function App() {
           </nav>
         </div>
 
+        {purchaseId && <PurchaseSheet purchaseId={purchaseId} onClose={closePurchase} onToast={flash} />}
         {detailId && (
           <DetailSheet itemId={detailId} onClose={closeDetail} onMarkSold={markSoldFromDetail} onToast={flash} />
         )}

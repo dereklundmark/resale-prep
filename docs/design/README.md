@@ -1,4 +1,4 @@
-# Handoff: Resale Prep Tool (mobile-first web app) · v2
+# Handoff: Resale Prep Tool (mobile-first web app) · v3
 
 ## Overview
 This is a personal, single-user web app for prepping items for resale on three Swedish marketplaces: **Tradera**, **Blocket** and **Facebook Marketplace**.
@@ -22,10 +22,98 @@ Your task is to **recreate these designs in the target codebase**. The planned s
 
 If no frontend framework has been chosen, a lightweight React (Vite) or Svelte SPA is a good fit.
 
-`ResaleFinal_v2.dc.html` is the current design. It opens in a browser as long as `support.js` sits next to it. It is fully clickable and uses mock data and a fake 1.3 s "generate" delay. The logic class at the bottom of the file, `class Component`, is a readable spec of every state transition. `ResaleFinal_v1.dc.html` is the previous version, kept for diffing.
+`ResaleFinal_v3.dc.html` is the current design. Earlier versions are `ResaleFinal_v2.dc.html` (v2) and It opens in a browser as long as `support.js` sits next to it. It is fully clickable and uses mock data and a fake 1.3 s "generate" delay. The logic class at the bottom of the file, `class Component`, is a readable spec of every state transition. `ResaleFinal_v1.dc.html` (v1), kept for diffing.
 
 ## Fidelity
 **High-fidelity.** Colors, type, spacing and interactions are final. Recreate them closely. The only intentional placeholders are the striped photo boxes, which should be replaced by real uploaded images.
+
+---
+
+## What changed in v3 (vs. v2)
+v3 adds one side feature: **a group can double as a fund**. Nothing else changes: same tokens, type, spacing, light pill tab bar and v2 flags. Groups without a purpose or purchases look and behave exactly as in v2.
+
+### Rules
+- **A purchase belongs to exactly one real group.** "Ungrouped" can't have purchases or a purpose. Fields: `what` (text), `amount` (whole kr), `date` (YYYY-MM-DD). No photo.
+- **Each group has an optional `purpose`** (text), e.g. "Photo gear fund".
+- **`left = earned − spent`.** `earned` is the sum of the group's sold prices, and `spent` is the sum of its purchases. Always calculate it; never store it.
+- **The TOTAL hero and "kr earned" stay sales-only.** Purchases never change them, and they don't affect the group revenue bar either.
+- A group "has a fund" when `purpose` is set **or** it has at least one purchase. Only then do the fund elements below appear.
+
+### 1. Collapsed group row (TOTAL)
+- When the group has a fund, a second line sits under the name: 12 px, weight 600, `{purpose || 'Fund'} · {left} kr left`, in green `oklch(0.5 0.12 150)`.
+- When it's overspent (left < 0), the line reads `… · {|left|} kr over` in stale orange `oklch(0.52 0.15 38)`.
+- The rest of the row (square, counts, revenue, caret) is unchanged.
+
+### 2. Expanded group
+The order is:
+1. **Fund indicator** (only if the group has a fund), at the top:
+   - A 10 px bar, radius 5, track `#e3ddd2`. The fill width is `min(100, spent/earned × 100)%` in ink. When overspent, the fill is 100% in stale orange.
+   - Under it: "Spent {spent}" on the left and "Left {left}" on the right in green (or "Over by {x}" in orange). Both 13 px, weight 600.
+   - Then "of {earned} earned" in 11 px `#9a9489`.
+2. **Sold** and **For sale** sections, unchanged from v2.
+3. **Bought section** (only if the group has a fund):
+   - Header: 11 px uppercase, weight 700, in **ink**. "BOUGHT · {spent}" on the left, "{n} ITEM(S)" on the right.
+   - Rows use the same layout as Sold rows (14 px, 7 px padding, dashed dividers).
+   - Each row has a **"bought" pill**: solid ink background with `#f6f3ed` text. This tells it apart from the green "sold" pill and the outlined "for sale" pill.
+   - Then the title, followed by " · 20 Sep" in 12 px `#9a9489`, then the amount as **"−3 900 kr"** (weight 600, ink). Sorted newest first.
+   - Empty state: "Nothing bought yet. All {earned} is still in the fund." (13 px, `#8a847a`).
+4. **Link row** (real groups only, hidden while a panel is open):
+   - 13 px, weight 600, `space-between`, 8 px vertical hit padding.
+   - Left: "+ Add purchase" in ink, underlined.
+   - Right, 12 px gap: "Set purpose" (reads "Purpose" once set), "Rename" (`#6f6a62`), and "Delete" (orange). The first tap on Delete turns it into "Tap again"; the second tap deletes the group.
+   - Deleting a group moves its items and sales to Ungrouped, and **deletes its purchases and purpose**.
+
+### 3. "+ Add purchase" panel
+- An inline dark panel (`#2a2723`, text `#f6f3ed`, `padding: 14px 16px 16px`) in place of the link row. It contains:
+  - The label "ADD PURCHASE · {group}" (11 px uppercase, `#cfc8bc`).
+  - "What did you buy?" input (18 px, weight 600).
+  - A 2-column grid: kr (numeric) and date (`type="date"`, default today).
+  - A live preview line: "After this: {x} kr left / over" (12 px, `#cfc8bc`).
+  - A "Cancel" link.
+- **Save follows the v2 pinned pattern:**
+  - With `pinned` on (recommended), SAVE PURCHASE is the pinned band above the tab bar. It is grey (`#c9c2b6`) until both "what" and amount are filled.
+  - In-flow, a cream "SAVE" chip sits next to Cancel instead.
+- On save, the panel closes and the toast shows "−{amount} kr".
+- This is a single save, not "save + next", because purchases are rare.
+
+### 4. Purpose and Rename
+- Both replace the link row with a cream inline form:
+  - An 11 px label ("PURPOSE" / "GROUP NAME").
+  - A 17 px weight-600 input with a 1.5 px ink underline. The purpose placeholder is "e.g. Photo gear fund".
+  - "Save" and "Cancel" links.
+- Purpose also shows "Remove purpose" (orange) on the right once a purpose is set. Saving an empty purpose also removes it.
+- Rename updates every reference: items, sales, purchases, the purpose and the active filters. Duplicate or empty names are ignored.
+
+### 5. Purchase sheet (tap a purchase)
+- Same overlay as the item sheet (covers the tab bar), but slimmer: **no photo, platforms or condition**, and `padding: 16px 20px 40px`.
+- **Top row:** status "PURCHASE · {group}" (11 px uppercase, `#6f6a62`) and a ✕ (36 px circle, `#e8e3da`).
+- **View:**
+  - The "what" as the title (22 px, weight 600).
+  - A 3-column facts grid: Amount (−3 900 kr) / Date (20 Sep 2026) / Fund (2 120 kr left in green, or "… over" in orange).
+  - Link row: "Edit" on the left; "Delete purchase" on the right in orange, with a "Tap again to delete" confirm.
+- **Edit:**
+  - The status reads "EDITING PURCHASE" in ink.
+  - Fields: What, then Amount and Date in a 2-column grid, then a "Paid from group" select (real groups only, so a purchase can be moved).
+  - A "Save changes" pill and a "Cancel" link.
+
+### Data model additions
+```
+groups:    + purpose NVARCHAR NULL
+purchases: id, group_id (FK, NOT NULL, cascade delete), what NVARCHAR, amount INT, date DATE, created_at
+```
+- Left, spent and earned are views or queries, never columns.
+- Add `purchases` (and `purposes`) to the backup export/import JSON.
+
+### Prototype props (demo only)
+These exist only to stage screenshots. Ignore them when building:
+- `fundSeed`: `normal` | `over` | `empty`
+- `openGroup`
+- `fundUi`: `add` | `purpose` | `rename`
+- `purchaseId`
+- `purchaseEdit`
+- `scrollTop`
+
+The mock data adds two Garage Cleanout sales, so the group earns 6 020 kr as in your example.
 
 ---
 
@@ -344,7 +432,8 @@ Backfilled items have `date_listed = NULL`, so days-to-sell is null and the UI s
 There are no icons or image assets. The striped boxes are placeholders for the user's uploaded photos. The only glyphs used are →, ✕, + and –.
 
 ## Files
-- `ResaleFinal_v2.dc.html` is the **current** clickable prototype. Open it in a browser with `support.js` next to it. The logic class at the bottom holds the mock data and every interaction.
+- `ResaleFinal_v3.dc.html` is the **current** clickable prototype, with the v3 fund feature. Its props are the same as v2's plus the fund demo props.
+- `ResaleFinal_v2.dc.html` is the v2 prototype. Open it in a browser with `support.js` next to it. The logic class at the bottom holds the mock data and every interaction.
   - Flags are props on the component: `pinned`, `markSold`, `barColor` (default `pillLight` = final), `leftMode`, `startTab`.
   - Demo props (`seedStage`, `detailId`, `detailEdit`, `demoError`, `sellOpenId`, `swipeOpenId`, `demoToast`, `pastOpen`, `openGroup`) exist only to stage screenshots. Ignore them when building.
 - `ResaleFinal_v1.dc.html` is the previous version, for reference and diffing.

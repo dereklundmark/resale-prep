@@ -53,6 +53,21 @@ export interface Group {
   id: string;
   name: string;
   description: string | null;
+  /** What the group's money is for, e.g. 'Photo gear fund'. null = no purpose. */
+  purpose: string | null;
+  createdAt: string;
+}
+
+/** Something bought with a group's earnings (the group works as a fund). */
+export interface Purchase {
+  id: string;
+  groupId: string;
+  /** What was bought. */
+  title: string;
+  amount: number;
+  currencyCode: string;
+  date: IsoDate;
+  notes: string | null;
   createdAt: string;
 }
 

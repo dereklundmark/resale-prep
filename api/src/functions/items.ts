@@ -4,7 +4,8 @@
 //   PUT    /api/items/{id}   replace an item's fields and platforms (edit, mark sold); photos untouched
 //   DELETE /api/items/{id}   delete an item; its photos and platform rows go with it (ON DELETE CASCADE)
 //   POST   /api/groups       create a group (or return the existing one with that name)
-//   PUT    /api/groups/{id}  rename a group;  DELETE /api/groups/{id}  delete it (items become Ungrouped)
+//   PUT    /api/groups/{id}  rename a group and/or set its purpose (fund name)
+//   DELETE /api/groups/{id}?moveTo={id}  move its items (and purchases) to another group, then delete it
 import { app, type HttpRequest } from '@azure/functions';
 import { sql, withDb } from '../lib/db.js';
 import { HttpError, handler, json, readJson } from '../lib/http.js';
@@ -183,6 +184,31 @@ async function inTransaction<T>(pool: sql.ConnectionPool, fn: (tx: sql.Transacti
   }
 }
 
+/** A dbo.purchases row as the app's Purchase JSON. */
+function purchaseDto(p: any) {
+  return {
+    id: String(p.id).toLowerCase(),
+    groupId: String(p.group_id).toLowerCase(),
+    title: p.title,
+    amount: p.amount,
+    currencyCode: p.currency_code,
+    date: isoDate(p.purchase_date),
+    notes: p.notes,
+    createdAt: p.created_at.toISOString(),
+  };
+}
+
+/** A dbo.groups row as the app's Group JSON. */
+function groupDto(g: any) {
+  return {
+    id: String(g.id).toLowerCase(),
+    name: g.name,
+    description: g.description,
+    purpose: g.purpose ?? null,
+    createdAt: g.created_at.toISOString(),
+  };
+}
+
 // ---------- endpoints ----------
 
 app.http('items', {
@@ -275,20 +301,19 @@ app.http('groups', {
         .input('name', sql.NVarChar(100), name).query(`
           IF NOT EXISTS (SELECT 1 FROM dbo.groups WHERE name = @name)
             INSERT dbo.groups (id, name) VALUES (@id, @name);
-          SELECT id, name, description, created_at FROM dbo.groups WHERE name = @name;`);
+          SELECT id, name, description, purpose, created_at FROM dbo.groups WHERE name = @name;`);
       return r.recordset[0];
     });
-    return json(200, {
-      id: String(group.id).toLowerCase(),
-      name: group.name,
-      description: group.description,
-      createdAt: group.created_at.toISOString(),
-    });
+    return json(200, groupDto(group));
   }),
 });
 
-// PUT /api/groups/{id} renames; DELETE /api/groups/{id} deletes the group.
-// Its items are kept and become Ungrouped (group_id ON DELETE SET NULL).
+// PUT /api/groups/{id}: rename and/or set the purpose. Send only what changes;
+// "purpose": null (or "") removes it.
+// DELETE /api/groups/{id}?moveTo={groupId}: first moves the group's items and
+// purchases to moveTo, then deletes it, in one transaction. Without moveTo,
+// items become Ungrouped and purchases are deleted (a purchase must belong to
+// a real group); the app asks before doing that.
 app.http('group', {
   route: 'groups/{id}',
   methods: ['PUT', 'DELETE'],
@@ -297,37 +322,58 @@ app.http('group', {
     const id = guid(req.params.id, 'id');
 
     if (req.method === 'DELETE') {
-      const r = await withDb((pool) =>
-        pool.request().input('id', sql.UniqueIdentifier, id).query('DELETE dbo.groups WHERE id = @id;'),
+      const moveToRaw = req.query.get('moveTo');
+      const moveTo = moveToRaw ? guid(moveToRaw, 'moveTo') : null;
+      if (moveTo === id) throw bad("Can't move a group's items to itself");
+      await withDb((pool) =>
+        inTransaction(pool, async (tx) => {
+          if (moveTo) {
+            const target = await new sql.Request(tx)
+              .input('to', sql.UniqueIdentifier, moveTo)
+              .query('SELECT 1 AS ok FROM dbo.groups WHERE id = @to;');
+            if (!target.recordset.length) throw new HttpError(404, 'The group to move to no longer exists');
+            await new sql.Request(tx)
+              .input('id', sql.UniqueIdentifier, id)
+              .input('to', sql.UniqueIdentifier, moveTo)
+              .query(`UPDATE dbo.items SET group_id = @to, updated_at = SYSUTCDATETIME() WHERE group_id = @id;
+                      UPDATE dbo.purchases SET group_id = @to, updated_at = SYSUTCDATETIME() WHERE group_id = @id;`);
+          }
+          const r = await new sql.Request(tx).input('id', sql.UniqueIdentifier, id).query('DELETE dbo.groups WHERE id = @id;');
+          if (!r.rowsAffected[0]) throw new HttpError(404, 'Group not found');
+        }),
       );
-      if (!r.rowsAffected[0]) throw new HttpError(404, 'Group not found');
       return { status: 204 };
     }
 
     const b = (await readJson(req)) as Record<string, unknown>;
-    const name = text(b?.name, 'name', 100).trim();
-    if (!name) throw bad('name is required');
+    const hasName = b?.name !== undefined;
+    const hasPurpose = b?.purpose !== undefined;
+    if (!hasName && !hasPurpose) throw bad('Send a name and/or a purpose');
+    const name = hasName ? text(b.name, 'name', 100).trim() : null;
+    if (hasName && !name) throw bad('name is required');
+    const purpose = hasPurpose ? (optText(b.purpose, 'purpose', 200)?.trim() || null) : null;
+
     const group = await withDb(async (pool) => {
       const r = await pool
         .request()
         .input('id', sql.UniqueIdentifier, id)
-        .input('name', sql.NVarChar(100), name).query(`
-          IF EXISTS (SELECT 1 FROM dbo.groups WHERE name = @name AND id <> @id)
+        .input('name', sql.NVarChar(100), name)
+        .input('set_purpose', sql.Bit, hasPurpose)
+        .input('purpose', sql.NVarChar(200), purpose).query(`
+          IF @name IS NOT NULL AND EXISTS (SELECT 1 FROM dbo.groups WHERE name = @name AND id <> @id)
             THROW 50001, 'A group with that name already exists.', 1;
-          UPDATE dbo.groups SET name = @name WHERE id = @id;
-          SELECT id, name, description, created_at FROM dbo.groups WHERE id = @id;`);
+          UPDATE dbo.groups
+             SET name = COALESCE(@name, name),
+                 purpose = CASE WHEN @set_purpose = 1 THEN @purpose ELSE purpose END
+           WHERE id = @id;
+          SELECT id, name, description, purpose, created_at FROM dbo.groups WHERE id = @id;`);
       return r.recordset[0];
     }).catch((e: unknown) => {
       if ((e as { number?: number }).number === 50001) throw new HttpError(409, 'A group with that name already exists.');
       throw e;
     });
     if (!group) throw new HttpError(404, 'Group not found');
-    return json(200, {
-      id: String(group.id).toLowerCase(),
-      name: group.name,
-      description: group.description,
-      createdAt: group.created_at.toISOString(),
-    });
+    return json(200, groupDto(group));
   }),
 });
 
@@ -340,8 +386,10 @@ async function listAll() {
         FROM dbo.items;
       SELECT item_id, platform_code, category FROM dbo.item_platforms;
       SELECT id, item_id FROM dbo.photos ORDER BY item_id, position;
-      SELECT id, name, description, created_at FROM dbo.groups ORDER BY created_at;`);
-    const [items, platformRows, photoRows, groups] = r.recordsets as any[][];
+      SELECT id, name, description, purpose, created_at FROM dbo.groups ORDER BY created_at;
+      SELECT id, group_id, title, amount, currency_code, purchase_date, notes, created_at
+        FROM dbo.purchases ORDER BY purchase_date DESC, created_at DESC;`);
+    const [items, platformRows, photoRows, groups, purchases] = r.recordsets as any[][];
 
     // GUIDs come back upper-case from SQL Server; the app uses lower-case.
     const low = (v: unknown) => (v === null || v === undefined ? null : String(v).toLowerCase());
@@ -389,12 +437,98 @@ async function listAll() {
           createdAt: i.created_at.toISOString(),
         };
       }),
-      groups: groups.map((g) => ({
-        id: low(g.id),
-        name: g.name,
-        description: g.description,
-        createdAt: g.created_at.toISOString(),
-      })),
+      groups: groups.map(groupDto),
+      purchases: purchases.map(purchaseDto),
     };
   });
 }
+
+// ---------- purchases (group funds) ----------
+//   POST   /api/purchases        add a purchase paid from a group's earnings
+//   PUT    /api/purchases/{id}   replace it (what, amount, date, which group)
+//   DELETE /api/purchases/{id}
+
+interface PurchaseDto {
+  id: string;
+  groupId: string;
+  title: string;
+  amount: number;
+  currencyCode: string;
+  date: string;
+  notes: string | null;
+  createdAt: string;
+}
+
+function parsePurchase(body: unknown, idFromUrl?: string): PurchaseDto {
+  if (typeof body !== 'object' || body === null) throw bad('Body must be a purchase');
+  const b = body as Record<string, unknown>;
+  const title = text(b.title, 'title', 200).trim();
+  if (!title) throw bad('Say what you bought');
+  const amount = optMoney(b.amount, 'amount');
+  if (amount === null) throw bad('amount is required');
+  const date = optDate(b.date, 'date');
+  if (!date) throw bad('date is required');
+  return {
+    id: guid(idFromUrl ?? b.id, 'id'),
+    groupId: guid(b.groupId, 'groupId'),
+    title,
+    amount,
+    currencyCode: text(b.currencyCode, 'currencyCode', 3),
+    date,
+    notes: optText(b.notes, 'notes', 2000),
+    createdAt: typeof b.createdAt === 'string' && !Number.isNaN(Date.parse(b.createdAt)) ? b.createdAt : new Date().toISOString(),
+  };
+}
+
+function purchaseInputs(r: sql.Request, p: PurchaseDto): sql.Request {
+  return r
+    .input('id', sql.UniqueIdentifier, p.id)
+    .input('group_id', sql.UniqueIdentifier, p.groupId)
+    .input('title', sql.NVarChar(200), p.title)
+    .input('amount', sql.Decimal(12, 2), p.amount)
+    .input('currency_code', sql.Char(3), p.currencyCode)
+    .input('purchase_date', sql.Date, utcDate(p.date))
+    .input('notes', sql.NVarChar(2000), p.notes);
+}
+
+app.http('purchases', {
+  route: 'purchases',
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  handler: handler(async (req: HttpRequest) => {
+    const p = parsePurchase(await readJson(req));
+    await withDb((pool) =>
+      purchaseInputs(pool.request(), p)
+        .input('created_at', sql.DateTime2(3), new Date(p.createdAt))
+        .query(`INSERT dbo.purchases (id, group_id, title, amount, currency_code, purchase_date, notes, created_at)
+                VALUES (@id, @group_id, @title, @amount, @currency_code, @purchase_date, @notes, @created_at);`),
+    );
+    return json(201, p);
+  }),
+});
+
+app.http('purchase', {
+  route: 'purchases/{id}',
+  methods: ['PUT', 'DELETE'],
+  authLevel: 'anonymous',
+  handler: handler(async (req: HttpRequest) => {
+    const id = guid(req.params.id, 'id');
+    if (req.method === 'DELETE') {
+      const r = await withDb((pool) =>
+        pool.request().input('id', sql.UniqueIdentifier, id).query('DELETE dbo.purchases WHERE id = @id;'),
+      );
+      if (!r.rowsAffected[0]) throw new HttpError(404, 'Purchase not found');
+      return { status: 204 };
+    }
+    const p = parsePurchase(await readJson(req), id);
+    const r = await withDb((pool) =>
+      purchaseInputs(pool.request(), p).query(`
+        UPDATE dbo.purchases
+           SET group_id = @group_id, title = @title, amount = @amount, currency_code = @currency_code,
+               purchase_date = @purchase_date, notes = @notes, updated_at = SYSUTCDATETIME()
+         WHERE id = @id;`),
+    );
+    if (!r.rowsAffected[0]) throw new HttpError(404, 'Purchase not found');
+    return json(200, p);
+  }),
+});

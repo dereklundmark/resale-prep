@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}*{box-sizing:border-box}a{color:#2a2723}a:hover{opacity:.7}input,select,textarea{font:inherit;color:inherit}::-webkit-scrollbar{display:none}input::placeholder,textarea::placeholder{color:#b9b2a6}</style>
+</helmet>
+<div style="position:relative; width:100%; height:100%; display:flex; flex-direction:column; background:#f6f3ed; color:#2a2723; font-family:'Archivo', sans-serif; font-size:15px; line-height:1.35; overflow:hidden;">
+  <div style="height:50px; flex:none; display:flex; align-items:center; justify-content:space-between; padding:6px 30px 0; font-weight:600; font-size:15px; font-family:-apple-system, system-ui, sans-serif;">
+    <span>9:41</span><div style="display:flex; gap:5px; align-items:center;"><div style="width:17px; height:10px; border-radius:2px; background:#2a2723;"></div><div style="width:24px; height:11px; border-radius:3px; border:1.5px solid #2a2723;"></div></div>
+  </div>
+
+  <div ref="{{ scrollRef }}" style="flex:1; min-height:0; overflow-y:auto; overflow-x:hidden;">
+    <div style="padding:10px 20px 0; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <div style="min-width:0; font-weight:500; font-size:{{ heroSize }}; line-height:1.05; letter-spacing:-0.025em; word-break:break-word;">{{ hero }}</div>
+      <sc-if value="{{ isInv }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:none; display:flex; gap:2px; padding:2px; border-radius:999px; background:#e8e3da;">
+          <sc-for list="{{ leftModes }}" as="m" hint-placeholder-count="2">
+            <span onClick="{{ m.go }}" style="cursor:pointer; padding:5px 12px; border-radius:999px; font-size:12px; font-weight:600; background:{{ m.bg }}; color:{{ m.fg }};">{{ m.label }}</span>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+
+    <!-- NEW -->
+    <sc-if value="{{ isNew }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex; flex-direction:column; padding-top:18px;">
+        <sc-if value="{{ showForm }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; flex-direction:column;">
+            <div style="height:210px; margin:0 20px; background:repeating-linear-gradient(0deg, #e5dfd4 0 1px, transparent 1px 9px), #ebe6dc; display:flex; align-items:flex-end; justify-content:space-between; padding:10px;">
+              <span style="font-family:ui-monospace, Menlo, monospace; font-size:11px; color:#6f6a62;">item photo · tap to retake</span>
+              <span style="font-weight:800; font-size:12px; text-transform:uppercase; letter-spacing:.06em;">+1</span>
+            </div>
+            <div style="padding:18px 20px 0; display:flex; flex-direction:column; gap:20px;">
+              <input value="{{ name }}" onChange="{{ onName }}" placeholder="What is it?" style="border:none; border-bottom:1.5px solid #2a2723; background:transparent; outline:none; padding:0 0 6px; font-weight:600; font-size:24px; letter-spacing:-0.01em; width:100%;">
+              <div style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px;">
+                <label style="display:flex; flex-direction:column; gap:4px; min-width:0;">
+                  <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6f6a62;">Condition</span>
+                  <select value="{{ condition }}" onChange="{{ onCondition }}" style="height:40px; border:none; border-bottom:1px solid #2a2723; border-radius:0; background:transparent; font-weight:600; font-size:16px; padding:0; min-width:0; width:100%;">
+                    <sc-for list="{{ conditions }}" as="c" hint-placeholder-count="6"><option value="{{ c }}">{{ c }}</option></sc-for>
+                  </select>
+                </label>
+                <label style="display:flex; flex-direction:column; gap:4px; min-width:0;">
+                  <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6f6a62;">Group</span>
+                  <select value="{{ group }}" onChange="{{ onGroup }}" style="height:40px; border:none; border-bottom:1px solid #2a2723; border-radius:0; background:transparent; font-weight:600; font-size:16px; padding:0; min-width:0; width:100%;">
+                    <sc-for list="{{ groupOptions }}" as="g" hint-placeholder-count="3"><option value="{{ g }}">{{ g }}</option></sc-for>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; margin-top:24px;">
+              <sc-for list="{{ platToggles }}" as="p" hint-placeholder-count="3">
+                <div onClick="{{ p.toggle }}" style="height:46px; padding:0 20px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; background:{{ p.bg }}; color:{{ p.fg }}; border-top:1px solid #ddd6ca; font-weight:600; font-size:17px; text-transform:uppercase; text-decoration:{{ p.strike }};">
+                  <span>{{ p.label }}</span><span style="font-size:14px; font-weight:600; text-decoration:none;">{{ p.state }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <sc-if value="{{ errorInFlow }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:12px 20px 10px; font-size:13px; font-weight:600; color:oklch(0.52 0.15 38); border-top:1px solid #ddd6ca;">{{ genError }}</div>
+            </sc-if>
+            <sc-if value="{{ inFlow }}" hint-placeholder-val="{{ true }}">
+              <div onClick="{{ generate }}" style="height:54px; padding:0 20px; background:#2a2723; color:#f6f3ed; display:flex; align-items:center; justify-content:space-between; cursor:pointer; font-weight:500; font-size:19px; text-transform:uppercase;"><span>Generate</span><span>→</span></div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isGenerating }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:30px 20px; font-weight:500; font-size:30px; line-height:1; text-transform:uppercase; color:#cfc8bc;">Reading<br>photo<br>…</div>
+        </sc-if>
+
+        <sc-if value="{{ isResult }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; gap:22px; padding:0 20px;">
+            <div style="display:flex; justify-content:space-between; gap:10px; font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;">
+              <span style="color:#6f6a62;">Grey = AI draft · Black = yours</span>
+              <span style="display:flex; gap:12px; flex:none;">
+                <span onClick="{{ generate }}" style="cursor:pointer; text-decoration:underline;">Redo</span>
+                <span onClick="{{ backToForm }}" style="cursor:pointer; text-decoration:underline;">Edit item</span>
+              </span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6f6a62;">Title</span>
+              <textarea value="{{ title.value }}" onChange="{{ title.onChange }}" rows="2" style="border:none; border-bottom:2px {{ title.line }} {{ title.fg }}; background:transparent; outline:none; padding:0 0 6px; resize:none; font-weight:600; font-size:20px; line-height:1.15; color:{{ title.fg }};"></textarea>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6f6a62;">Description</span>
+              <textarea value="{{ desc.value }}" onChange="{{ desc.onChange }}" rows="6" style="border:none; border-left:2px {{ desc.line }} {{ desc.fg }}; background:transparent; outline:none; padding:0 0 0 12px; resize:none; font-size:15px; line-height:1.5; color:{{ desc.fg }};"></textarea>
+            </div>
+            <div style="display:flex; flex-direction:column;">
+              <sc-for list="{{ catRows }}" as="c" hint-placeholder-count="3">
+                <div style="display:flex; align-items:stretch; border-top:1px solid #ddd6ca;">
+                  <div style="width:10px; flex:none; background:{{ c.color }};"></div>
+                  <div style="flex:1; min-width:0; display:flex; flex-direction:column; padding:8px 0 8px 10px;">
+                    <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;">{{ c.label }}</span>
+                    <select value="{{ c.value }}" onChange="{{ c.onChange }}" style="border:none; background:transparent; padding:2px 0; font-size:14px; color:{{ c.fg }}; min-width:0;">
+                      <sc-for list="{{ c.options }}" as="o" hint-placeholder-count="3"><option value="{{ o }}">{{ o }}</option></sc-for>
+                    </select>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6f6a62;">AI estimate</span>
+              <span style="font-weight:500; font-size:40px; line-height:.95; color:#8a847a;">350–550</span>
+              <span style="font-size:13px; color:#6f6a62; line-height:1.45;">New ≈ 1 295 kr. Very good condition usually sells for 30–40% of that on Blocket.</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;">Your price, kr</span>
+              <input value="{{ ask }}" onChange="{{ onAsk }}" inputmode="numeric" placeholder="———" style="border:none; border-bottom:1.5px solid #2a2723; background:transparent; outline:none; padding:0; font-weight:500; font-size:40px; line-height:1; width:100%;">
+            </div>
+          </div>
+          <sc-if value="{{ errorInFlow }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:16px 20px 0; font-size:13px; font-weight:600; color:oklch(0.52 0.15 38);">{{ genError }}</div>
+          </sc-if>
+          <sc-if value="{{ inFlow }}" hint-placeholder-val="{{ true }}">
+            <div onClick="{{ save }}" style="margin-top:22px; height:54px; padding:0 20px; background:{{ saveBg }}; color:#f6f3ed; display:flex; align-items:center; justify-content:space-between; cursor:pointer; font-weight:500; font-size:19px; text-transform:uppercase;"><span>Save</span><span>→</span></div>
+          </sc-if>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ACTIVE -->
+    <sc-if value="{{ isInv }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; flex-direction:column; padding-top:14px;">
+        <div style="display:flex; gap:14px; padding:0 20px 12px; overflow-x:auto;">
+          <sc-for list="{{ groupChips }}" as="c" hint-placeholder-count="4">
+            <span onClick="{{ c.go }}" style="flex:none; cursor:pointer; font-size:13px; font-weight:700; color:{{ c.fg }}; text-transform:uppercase; letter-spacing:.04em; border-bottom:1.5px solid {{ c.bar }}; padding-bottom:2px;">{{ c.label }}</span>
+          </sc-for>
+        </div>
+        <sc-if value="{{ isSwipe }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:0 20px 10px; font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#9a9489;">← Swipe a row left to mark sold</div>
+        </sc-if>
+        <sc-for list="{{ invRows }}" as="it" hint-placeholder-count="6">
+          <div style="border-top:1px solid #ddd6ca; display:flex; flex-direction:column;">
+            <div style="position:relative; overflow:hidden;">
+              <sc-if value="{{ isSwipe }}" hint-placeholder-val="{{ false }}">
+                <div onClick="{{ it.open }}" style="position:absolute; top:0; right:0; bottom:0; width:116px; background:#2a2723; color:#f6f3ed; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:13px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;">Mark sold</div>
+              </sc-if>
+              <div onClick="{{ it.click }}" onPointerDown="{{ it.down }}" onPointerUp="{{ it.up }}" style="position:relative; display:flex; align-items:stretch; gap:14px; padding:12px 20px; cursor:pointer; background:#f6f3ed; user-select:none; touch-action:pan-y; transition:transform .22s ease; transform:translateX({{ it.tx }});" style-hover="background:#efebe3">
+                <sc-if value="{{ showDays }}" hint-placeholder-val="{{ true }}">
+                  <div style="width:46px; flex:none; display:flex; flex-direction:column; gap:2px;">
+                    <span style="font-weight:500; font-size:30px; line-height:.9; color:{{ it.dFill }};">{{ it.days }}</span>
+                    <span style="font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6f6a62;">days</span>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ showPhoto }}" hint-placeholder-val="{{ false }}">
+                  <div style="width:64px; height:64px; flex:none; background:repeating-linear-gradient(0deg, #e5dfd4 0 1px, transparent 1px 6px), #ebe6dc; display:flex; align-items:flex-end; padding:4px;">
+                    <span style="font-family:ui-monospace, Menlo, monospace; font-size:9px; color:#6f6a62;">photo 1</span>
+                  </div>
+                </sc-if>
+                <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:4px;">
+                  <span style="font-weight:700; font-size:16px; line-height:1.2;">{{ it.title }}</span>
+                  <span style="font-size:12px; color:#6f6a62;">{{ it.group }}<sc-if value="{{ showPhoto }}" hint-placeholder-val="{{ false }}"><span style="color:{{ it.dFill }};"> · {{ it.days }} days</span></sc-if></span>
+                  <div style="display:flex; gap:3px; margin-top:auto;"><sc-for list="{{ it.colors }}" as="c" hint-placeholder-count="2"><span style="width:18px; height:5px; background:{{ c }};"></span></sc-for></div>
+                </div>
+                <div style="flex:none; display:flex; flex-direction:column; align-items:flex-end; justify-content:space-between; gap:8px;">
+                  <span style="font-weight:600; font-size:17px;">{{ it.price }}</span>
+                  <sc-if value="{{ isPill }}" hint-placeholder-val="{{ true }}">
+                    <span onClick="{{ it.open }}" style="cursor:pointer; font-size:12px; font-weight:600; padding:6px 11px; border-radius:999px; border:1.5px solid #2a2723; white-space:nowrap;" style-hover="background:#2a2723; color:#f6f3ed">Mark sold</span>
+                  </sc-if>
+                </div>
+              </div>
+            </div>
+            <sc-if value="{{ it.selling }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; align-items:center; gap:10px; padding:0 20px; height:64px; background:#2a2723; color:#f6f3ed;">
+                <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;">Sold for</span>
+                <input value="{{ sellPrice }}" onChange="{{ onSellPrice }}" inputmode="numeric" style="flex:1; min-width:0; border:none; background:transparent; outline:none; color:#f6f3ed; font-weight:500; font-size:24px;">
+                <span style="position:relative; flex:none;">
+                  <span onClick="{{ openDatePicker }}" style="cursor:pointer; font-size:13px; font-weight:600; padding:6px 2px; border-bottom:1px dotted #cfc8bc;">{{ sellDateLabel }}</span>
+                  <input ref="{{ dateRef }}" type="date" value="{{ sellDate }}" onChange="{{ onSellDate }}" style="position:absolute; left:0; bottom:0; width:1px; height:1px; opacity:0; border:none; padding:0;">
+                </span>
+                <span onClick="{{ cancelSell }}" style="cursor:pointer; color:#cfc8bc; padding:6px;">✕</span>
+                <span onClick="{{ confirmSell }}" style="cursor:pointer; background:#f6f3ed; color:#2a2723; padding:8px 12px; font-weight:800; font-size:13px; text-transform:uppercase;">OK</span>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+        <div style="border-top:1px solid #ddd6ca;"></div>
+      </div>
+    </sc-if>
+
+    <!-- SOLD -->
+    <sc-if value="{{ isSold }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; flex-direction:column; padding-top:16px;">
+        <div onClick="{{ togglePast }}" style="height:56px; padding:0 20px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; background:{{ pastBg }}; color:{{ pastFg }}; border-top:1px solid #ddd6ca; font-weight:500; font-size:17px; text-transform:uppercase;"><span>+ Past sale</span><span style="font-size:13px; font-weight:600;">{{ pastCountLabel }}</span></div>
+        <sc-if value="{{ pastOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; gap:12px; padding:14px 20px 18px; background:#2a2723; color:#f6f3ed;">
+            <input value="{{ past.title }}" onChange="{{ onPastTitle }}" placeholder="Item" style="border:none; border-bottom:2px solid #f6f3ed; background:transparent; outline:none; padding:0 0 4px; font-weight:600; font-size:18px; color:#f6f3ed;">
+            <div style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px;">
+              <input value="{{ past.price }}" onChange="{{ onPastPrice }}" inputmode="numeric" placeholder="kr" style="border:none; border-bottom:2px solid #f6f3ed; background:transparent; outline:none; padding:0 0 4px; font-size:18px; font-weight:700; color:#f6f3ed; min-width:0;">
+              <input value="{{ past.date }}" onChange="{{ onPastDate }}" placeholder="yyyy-mm" style="border:none; border-bottom:2px solid #f6f3ed; background:transparent; outline:none; padding:0 0 4px; font-size:18px; color:#f6f3ed; min-width:0;">
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:10px;">
+              <label style="display:flex; flex-direction:column; gap:2px; min-width:0;">
+                <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#cfc8bc;">Group ▾</span>
+                <select value="{{ past.group }}" onChange="{{ onPastGroup }}" style="border:none; background:transparent; color:#f6f3ed; font-weight:700; font-size:14px; min-width:0; padding:0;">
+                  <sc-for list="{{ groupOptions }}" as="g" hint-placeholder-count="3"><option value="{{ g }}">{{ g }}</option></sc-for>
+                </select>
+              </label>
+              <sc-if value="{{ inFlow }}" hint-placeholder-val="{{ true }}">
+                <span onClick="{{ savePast }}" style="flex:none; background:#f6f3ed; color:#2a2723; padding:10px 14px; font-weight:800; font-size:13px; text-transform:uppercase; cursor:pointer;">Save + next</span>
+              </sc-if>
+            </div>
+          </div>
+        </sc-if>
+        <div style="display:flex; gap:14px; padding:16px 20px 12px; overflow-x:auto;">
+          <sc-for list="{{ soldChips }}" as="c" hint-placeholder-count="4">
+            <span onClick="{{ c.go }}" style="flex:none; cursor:pointer; font-size:13px; font-weight:700; color:{{ c.fg }}; text-transform:uppercase; letter-spacing:.04em; border-bottom:1.5px solid {{ c.bar }}; padding-bottom:2px;">{{ c.label }}</span>
+          </sc-for>
+        </div>
+        <sc-for list="{{ soldRows }}" as="it" hint-placeholder-count="6">
+          <div onClick="{{ it.view }}" style="display:flex; align-items:center; gap:14px; padding:10px 20px; border-top:1px solid #ddd6ca; cursor:pointer;" style-hover="background:#efebe3">
+            <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
+              <span style="font-weight:700; font-size:15px; line-height:1.2;">{{ it.title }}</span>
+              <span style="font-size:12px; color:#6f6a62;">{{ it.meta }}</span>
+            </div>
+            <span style="flex:none; font-weight:600; font-size:17px; text-align:right;">{{ it.price }}</span>
+          </div>
+        </sc-for>
+        <div style="display:flex; justify-content:space-between; align-items:baseline; padding:10px 20px 0; border-top:1.5px solid #2a2723;">
+          <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6f6a62;">{{ soldFilterLabel }}</span>
+          <span style="font-weight:600; font-size:17px;">{{ soldFilterTotal }}</span>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- TOTAL -->
+    <sc-if value="{{ isDash }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; flex-direction:column; gap:26px; padding:14px 20px 0;">
+        <div style="font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.06em;">kr earned · {{ soldCount }} of {{ total }} items sold</div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="display:flex; height:10px; border-radius:5px; overflow:hidden; background:#e3ddd2;"><div style="width:{{ pct }}; background:#2a2723;"></div></div>
+          <div style="display:flex; justify-content:space-between; font-weight:500; font-size:19px; line-height:1; text-transform:uppercase;"><span>{{ pct }} sold</span><span style="color:#8a847a;">{{ activeCount }} left</span></div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6f6a62;">Revenue by group · tap to open</span>
+          <div style="display:flex; height:10px; gap:2px; border-radius:5px; overflow:hidden;">
+            <sc-for list="{{ groupRows }}" as="g" hint-placeholder-count="3"><div style="width:{{ g.pct }}; background:{{ g.shade }};"></div></sc-for>
+          </div>
+          <div style="display:flex; flex-direction:column;">
+            <sc-for list="{{ groupRows }}" as="g" hint-placeholder-count="3">
+              <div style="display:flex; flex-direction:column; border-top:1px solid #ddd6ca;">
+                <div onClick="{{ g.toggle }}" style="display:flex; align-items:center; gap:10px; padding:12px 0; cursor:pointer;">
+                  <span style="width:12px; height:12px; flex:none; background:{{ g.shade }};"></span>
+                  <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:1px;">
+                    <span style="font-weight:700;">{{ g.name }}</span>
+                    <sc-if value="{{ g.hasFund }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; font-weight:600; color:{{ g.fundFg }};">{{ g.fundLine }}</span></sc-if>
+                  </div>
+                  <span style="font-size:12px; color:#6f6a62;">{{ g.counts }}</span>
+                  <span style="font-weight:600; font-size:20px; width:90px; text-align:right;">{{ g.rev }}</span>
+                  <span style="width:14px; text-align:right; color:#6f6a62; font-size:13px;">{{ g.caret }}</span>
+                </div>
+                <sc-if value="{{ g.open }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex; flex-direction:column; gap:22px; padding:2px 0 18px 22px;">
+                    <sc-if value="{{ g.hasFund }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex; flex-direction:column; gap:6px;">
+                        <div style="display:flex; height:10px; border-radius:5px; overflow:hidden; background:#e3ddd2;"><div style="width:{{ g.spentPct }}; background:{{ g.fundFill }};"></div></div>
+                        <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:600;"><span>{{ g.spentLabel }}</span><span style="color:{{ g.fundFg }};">{{ g.leftLabel }}</span></div>
+                        <div style="font-size:11px; color:#9a9489;">of {{ g.rev }} earned</div>
+                      </div>
+                    </sc-if>
+                    <div style="display:flex; flex-direction:column;">
+                      <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; padding-bottom:6px; color:oklch(0.5 0.12 150);"><span>Sold · {{ g.rev }}</span><span>{{ g.soldN }} items</span></div>
+                      <sc-for list="{{ g.soldItems }}" as="x" hint-placeholder-count="2">
+                        <div onClick="{{ x.view }}" style="display:flex; align-items:center; gap:10px; padding:7px 0; border-top:1px dashed #ddd6ca; font-size:14px; cursor:pointer;">
+                          <span style="flex:none; font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; background:oklch(0.94 0.04 150); color:oklch(0.4 0.1 150);">sold</span>
+                          <span style="flex:1; min-width:0;">{{ x.title }}</span>
+                          <span style="flex:none; font-weight:600; color:#2a2723;">{{ x.price }}</span>
+                        </div>
+                      </sc-for>
+                      <sc-if value="{{ g.noSold }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px; color:#8a847a; padding:7px 0; border-top:1px dashed #ddd6ca;">Nothing sold yet</div></sc-if>
+                    </div>
+                    <div style="display:flex; flex-direction:column;">
+                      <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; padding-bottom:6px; color:#6f6a62;"><span>For sale · {{ g.askTotal }} asking</span><span>{{ g.actN }} items</span></div>
+                      <sc-for list="{{ g.actItems }}" as="x" hint-placeholder-count="2">
+                        <div onClick="{{ x.view }}" style="display:flex; align-items:center; gap:10px; padding:7px 0; border-top:1px dashed #ddd6ca; font-size:14px; color:#6f6a62; cursor:pointer;">
+                          <span style="flex:none; font-size:11px; font-weight:600; padding:1px 7px; border-radius:999px; border:1px solid #bdb6aa; color:#6f6a62;">for sale</span>
+                          <span style="flex:1; min-width:0;">{{ x.title }}</span>
+                          <span style="flex:none;">{{ x.price }}</span>
+                        </div>
+                      </sc-for>
+                      <sc-if value="{{ g.noAct }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px; color:#8a847a; padding:7px 0; border-top:1px dashed #ddd6ca;">All sold</div></sc-if>
+                    </div>
+                    <sc-if value="{{ g.hasFund }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex; flex-direction:column;">
+                        <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; padding-bottom:6px; color:#2a2723;"><span>{{ g.boughtHead }}</span><span>{{ g.boughtN }}</span></div>
+                        <sc-for list="{{ g.boughtItems }}" as="x" hint-placeholder-count="1">
+                          <div onClick="{{ x.view }}" style="display:flex; align-items:center; gap:10px; padding:7px 0; border-top:1px dashed #ddd6ca; font-size:14px; cursor:pointer;">
+                            <span style="flex:none; font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; background:#2a2723; color:#f6f3ed;">bought</span>
+                            <span style="flex:1; min-width:0;">{{ x.what }}<span style="color:#9a9489; font-size:12px;"> · {{ x.date }}</span></span>
+                            <span style="flex:none; font-weight:600;">{{ x.amount }}</span>
+                          </div>
+                        </sc-for>
+                        <sc-if value="{{ g.noBought }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px; color:#8a847a; padding:7px 0; border-top:1px dashed #ddd6ca;">Nothing bought yet. All {{ g.rev }} is still in the fund.</div></sc-if>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ g.showLinks }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:13px; font-weight:600; margin-top:-8px;">
+                        <span onClick="{{ g.openAdd }}" style="cursor:pointer; text-decoration:underline; padding:8px 0;">+ Add purchase</span>
+                        <span style="display:flex; gap:12px; color:#6f6a62;">
+                          <span onClick="{{ g.openPurpose }}" style="cursor:pointer; text-decoration:underline; padding:8px 0;">{{ g.purposeLink }}</span>
+                          <span onClick="{{ g.openRename }}" style="cursor:pointer; text-decoration:underline; padding:8px 0;">Rename</span>
+                          <span onClick="{{ g.del }}" style="cursor:pointer; text-decoration:underline; padding:8px 0; color:oklch(0.52 0.15 38);">{{ g.delLabel }}</span>
+                        </span>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ g.adding }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex; flex-direction:column; gap:12px; padding:14px 16px 16px; background:#2a2723; color:#f6f3ed; margin-top:-8px;">
+                        <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#cfc8bc;">Add purchase · {{ g.name }}</span>
+                        <input value="{{ fundForm.what }}" onChange="{{ onFundWhat }}" placeholder="What did you buy?" style="border:none; border-bottom:2px solid #f6f3ed; background:transparent; outline:none; padding:0 0 4px; font-weight:600; font-size:18px; color:#f6f3ed;">
+                        <div style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px;">
+                          <input value="{{ fundForm.amount }}" onChange="{{ onFundAmount }}" inputmode="numeric" placeholder="kr" style="border:none; border-bottom:2px solid #f6f3ed; background:transparent; outline:none; padding:0 0 4px; font-size:18px; font-weight:700; color:#f6f3ed; min-width:0;">
+                          <input type="date" value="{{ fundForm.date }}" onChange="{{ onFundDate }}" style="border:none; border-bottom:2px solid #f6f3ed; border-radius:0; background:transparent; outline:none; padding:0 0 4px; font-size:16px; color:#f6f3ed; min-width:0; color-scheme:dark;">
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+                          <span style="font-size:12px; color:#cfc8bc;">{{ fundPreview }}</span>
+                          <span style="display:flex; align-items:center; gap:14px; flex:none;">
+                            <span onClick="{{ closeFundUi }}" style="cursor:pointer; font-size:13px; font-weight:600; color:#cfc8bc; text-decoration:underline;">Cancel</span>
+                            <sc-if value="{{ inFlow }}" hint-placeholder-val="{{ true }}"><span onClick="{{ savePurchase }}" style="background:{{ buyChipBg }}; color:#2a2723; padding:10px 14px; font-weight:800; font-size:13px; text-transform:uppercase; cursor:pointer;">Save</span></sc-if>
+                          </span>
+                        </div>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ g.editingPurpose }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex; flex-direction:column; gap:8px; margin-top:-8px;">
+                        <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6f6a62;">Purpose</span>
+                        <input value="{{ purposeDraft }}" onChange="{{ onPurposeDraft }}" placeholder="e.g. Photo gear fund" style="border:none; border-bottom:1.5px solid #2a2723; background:transparent; outline:none; padding:0 0 6px; font-weight:600; font-size:17px;">
+                        <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:600;">
+                          <span style="display:flex; gap:14px;">
+                            <span onClick="{{ savePurpose }}" style="cursor:pointer; text-decoration:underline; padding:6px 0;">Save</span>
+                            <span onClick="{{ closeFundUi }}" style="cursor:pointer; text-decoration:underline; padding:6px 0; color:#6f6a62;">Cancel</span>
+                          </span>
+                          <sc-if value="{{ g.purpose }}" hint-placeholder-val="{{ false }}"><span onClick="{{ removePurpose }}" style="cursor:pointer; text-decoration:underline; padding:6px 0; color:oklch(0.52 0.15 38);">Remove purpose</span></sc-if>
+                        </div>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ g.renaming }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex; flex-direction:column; gap:8px; margin-top:-8px;">
+                        <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6f6a62;">Group name</span>
+                        <input value="{{ renameDraft }}" onChange="{{ onRenameDraft }}" style="border:none; border-bottom:1.5px solid #2a2723; background:transparent; outline:none; padding:0 0 6px; font-weight:600; font-size:17px;">
+                        <div style="display:flex; gap:14px; font-size:13px; font-weight:600;">
+                          <span onClick="{{ saveRename }}" style="cursor:pointer; text-decoration:underline; padding:6px 0;">Save</span>
+                          <span onClick="{{ closeFundUi }}" style="cursor:pointer; text-decoration:underline; padding:6px 0; color:#6f6a62;">Cancel</span>
+                        </div>
+                      </div>
+                    </sc-if>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+            <div style="display:flex; align-items:baseline; justify-content:space-between; padding:10px 0 0; border-top:1.5px solid #2a2723;">
+              <span style="font-weight:800; text-transform:uppercase; letter-spacing:.06em; font-size:13px;">All</span>
+              <span style="font-weight:500; font-size:19px;">{{ revenue }}</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:4px; padding-top:6px;">
+          <div style="display:flex; gap:6px; font-size:12px; color:#6f6a62;">
+            <span>Backup:</span>
+            <span onClick="{{ exportData }}" style="cursor:pointer; color:#2a2723; font-weight:600; text-decoration:underline;">Export</span>
+            <span>·</span>
+            <span onClick="{{ importData }}" style="cursor:pointer; color:#2a2723; font-weight:600; text-decoration:underline;">Import</span>
+          </div>
+          <div style="font-size:11px; color:#9a9489;">Resale Prep · version 1.2</div>
+          <input ref="{{ fileRef }}" type="file" accept="application/json,.json" onChange="{{ onImport }}" style="display:none;">
+        </div>
+      </div>
+    </sc-if>
+    <div style="height:24px;"></div>
+  </div>
+
+  <!-- PINNED ACTION (variant) -->
+  <sc-if value="{{ pinOn }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:none; display:flex; flex-direction:column; background:#f6f3ed;">
+      <sc-if value="{{ errorPinned }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:10px 20px; font-size:13px; font-weight:600; color:oklch(0.52 0.15 38); border-top:1px solid #ddd6ca;">{{ genError }}</div>
+      </sc-if>
+      <div onClick="{{ pin.go }}" style="height:54px; padding:0 20px; background:{{ pin.bg }}; color:#f6f3ed; display:flex; align-items:center; justify-content:space-between; cursor:pointer; font-weight:500; font-size:19px; text-transform:uppercase;"><span>{{ pin.label }}</span><span>→</span></div>
+    </div>
+  </sc-if>
+
+  <!-- BOTTOM TAB BAR -->
+  <sc-if value="{{ pillBar }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:none; padding:8px 16px 30px; background:#f6f3ed;">
+      <div style="display:flex; gap:2px; padding:5px; border-radius:999px; background:{{ bar.pillBg }};">
+        <sc-for list="{{ tabs }}" as="n" hint-placeholder-count="4">
+          <div onClick="{{ n.go }}" style="flex:1; height:46px; border-radius:999px; display:flex; align-items:center; justify-content:center; cursor:pointer; background:{{ n.pbg }}; color:{{ n.pfg }}; font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:.06em;">{{ n.label }}</div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ flatBar }}" hint-placeholder-val="{{ true }}">
+  <div style="flex:none; display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); border-top:1px solid {{ bar.rule }}; background:{{ bar.bg }}; padding:0 8px 34px;">
+    <sc-for list="{{ tabs }}" as="n" hint-placeholder-count="4">
+      <div onClick="{{ n.go }}" style="height:50px; margin-top:-1px; display:flex; justify-content:center; cursor:pointer;">
+        <span style="height:50px; padding-top:16px; border-top:2px solid {{ n.bar }}; font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:{{ n.fg }};">{{ n.label }}</span>
+      </div>
+    </sc-for>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute; left:0; right:0; bottom:{{ toastBottom }}; height:52px; padding:0 20px; display:flex; align-items:center; background:#2a2723; color:#f6f3ed; font-weight:500; font-size:18px; text-transform:uppercase; z-index:4;">{{ toast }}</div>
+  </sc-if>
+
+  <!-- ITEM DETAIL SHEET (covers tab bar) -->
+  <sc-if value="{{ detail }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute; inset:0; z-index:5; display:flex; flex-direction:column; justify-content:flex-end; background:rgba(42,39,35,.4);">
+      <div onClick="{{ closeDetail }}" style="position:absolute; inset:0;"></div>
+      <div style="position:relative; max-height:90%; overflow-y:auto; background:#f6f3ed; border-radius:16px 16px 0 0; display:flex; flex-direction:column;">
+        <div style="position:relative; height:{{ detail.photoH }}; flex:none; background:repeating-linear-gradient(0deg, #e5dfd4 0 1px, transparent 1px 9px), #ebe6dc; display:flex; align-items:flex-end; padding:10px 20px;">
+          <span style="font-family:ui-monospace, Menlo, monospace; font-size:11px; color:#6f6a62;">item photo</span>
+          <span onClick="{{ closeDetail }}" style="position:absolute; top:12px; right:12px; width:36px; height:36px; border-radius:50%; background:#f6f3ed; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px;">✕</span>
+        </div>
+        <div style="padding:18px 20px 40px; display:flex; flex-direction:column; gap:16px;">
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:{{ detail.statusFg }};">{{ detail.status }}</span>
+            <sc-if value="{{ detail.viewing }}" hint-placeholder-val="{{ true }}">
+              <span style="font-weight:600; font-size:22px; line-height:1.15; letter-spacing:-0.01em; text-wrap:pretty;">{{ detail.title }}</span>
+            </sc-if>
+          </div>
+
+          <sc-if value="{{ detail.viewing }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex; flex-direction:column; gap:16px;">
+              <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; border-top:1px solid #ddd6ca; border-bottom:1px solid #ddd6ca; padding:12px 0;">
+                <sc-for list="{{ detail.facts }}" as="f" hint-placeholder-count="3">
+                  <div style="display:flex; flex-direction:column; gap:2px; min-width:0;">
+                    <span style="font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6f6a62;">{{ f.label }}</span>
+                    <span style="font-weight:600; font-size:15px;">{{ f.value }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                <sc-for list="{{ detail.plats }}" as="p" hint-placeholder-count="2">
+                  <span style="font-size:12px; font-weight:600; padding:4px 10px; border-radius:999px; background:{{ p.bg }}; color:{{ p.fg }};">{{ p.label }}</span>
+                </sc-for>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:4px;">
+                <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6f6a62;">Description</span>
+                <span style="font-size:15px; line-height:1.55; text-wrap:pretty;">{{ detail.desc }}</span>
+              </div>
+              <sc-if value="{{ detail.active }}" hint-placeholder-val="{{ false }}">
+                <div onClick="{{ detail.sell }}" style="height:50px; border-radius:999px; background:#2a2723; color:#f6f3ed; display:flex; align-items:center; justify-content:center; font-weight:600; cursor:pointer;">Mark sold</div>
+              </sc-if>
+              <div style="display:flex; justify-content:space-between; align-items:center; padding-top:4px; font-size:14px; font-weight:600;">
+                <span onClick="{{ detail.edit }}" style="cursor:pointer; text-decoration:underline; padding:8px 0;">Edit</span>
+                <span onClick="{{ detail.del }}" style="cursor:pointer; text-decoration:underline; padding:8px 0; color:oklch(0.52 0.15 38);">{{ detail.delLabel }}</span>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ detail.editing }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex; flex-direction:column; gap:18px;">
+              <label style="display:flex; flex-direction:column; gap:4px;">
+                <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6f6a62;">Title</span>
+                <textarea value="{{ ed.title }}" onChange="{{ ed.onTitle }}" rows="2" style="border:none; border-bottom:1.5px solid #2a2723; background:transparent; outline:none; padding:0 0 6px; resize:none; font-weight:600; font-size:20px; line-height:1.15;"></textarea>
+              </label>
+              <div style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px;">
+                <label style="display:flex; flex-direction:column; gap:4px; min-width:0;">
+                  <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6f6a62;">{{ ed.priceLabel }}</span>
+                  <input value="{{ ed.price }}" onChange="{{ ed.onPrice }}" inputmode="numeric" style="height:40px; border:none; border-bottom:1px solid #2a2723; background:transparent; outline:none; padding:0; font-weight:600; font-size:18px; min-width:0; width:100%;">
+                </label>
+                <label style="display:flex; flex-direction:column; gap:4px; min-width:0;">
+                  <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6f6a62;">Group</span>
+                  <select value="{{ ed.group }}" onChange="{{ ed.onGroup }}" style="height:40px; border:none; border-bottom:1px solid #2a2723; border-radius:0; background:transparent; font-weight:600; font-size:16px; padding:0; min-width:0; width:100%;">
+                    <sc-for list="{{ ed.groupOptions }}" as="g" hint-placeholder-count="3"><option value="{{ g }}">{{ g }}</option></sc-for>
+                  </select>
+                </label>
+                <label style="display:flex; flex-direction:column; gap:4px; min-width:0;">
+                  <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6f6a62;">Condition</span>
+                  <select value="{{ ed.cond }}" onChange="{{ ed.onCond }}" style="height:40px; border:none; border-bottom:1px solid #2a2723; border-radius:0; background:transparent; font-weight:600; font-size:16px; padding:0; min-width:0; width:100%;">
+                    <sc-for list="{{ conditions }}" as="c" hint-placeholder-count="6"><option value="{{ c }}">{{ c }}</option></sc-for>
+                  </select>
+                </label>
+                <sc-if value="{{ ed.hasDate }}" hint-placeholder-val="{{ false }}">
+                  <label style="display:flex; flex-direction:column; gap:4px; min-width:0;">
+                    <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6f6a62;">{{ ed.dateLabel }}</span>
+                    <input type="{{ ed.dateType }}" value="{{ ed.date }}" onChange="{{ ed.onDate }}" style="height:40px; border:none; border-bottom:1px solid #2a2723; border-radius:0; background:transparent; outline:none; padding:0; font-weight:600; font-size:16px; min-width:0; width:100%;">
+                  </label>
+                </sc-if>
+              </div>
+              <label style="display:flex; flex-direction:column; gap:4px;">
+                <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6f6a62;">Description</span>
+                <textarea value="{{ ed.desc }}" onChange="{{ ed.onDesc }}" rows="5" placeholder="Add a description" style="border:none; border-left:2px solid #2a2723; background:transparent; outline:none; padding:0 0 0 12px; resize:none; font-size:15px; line-height:1.5;"></textarea>
+              </label>
+              <div style="display:flex; align-items:center; gap:18px; padding-top:4px;">
+                <div onClick="{{ ed.save }}" style="flex:1; height:50px; border-radius:999px; background:#2a2723; color:#f6f3ed; display:flex; align-items:center; justify-content:center; font-weight:600; cursor:pointer;">Save changes</div>
+                <span onClick="{{ ed.cancel }}" style="cursor:pointer; font-size:14px; font-weight:600; text-decoration:underline; padding:8px 0;">Cancel</span>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ pd }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute; inset:0; z-index:5; display:flex; flex-direction:column; justify-content:flex-end; background:rgba(42,39,35,.4);">
+      <div onClick="{{ closePd }}" style="position:absolute; inset:0;"></div>
+      <div style="position:relative; max-height:90%; overflow-y:auto; background:#f6f3ed; border-radius:16px 16px 0 0; padding:16px 20px 40px; display:flex; flex-direction:column; gap:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+          <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:{{ pd.statusFg }};">{{ pd.status }}</span>
+          <span onClick="{{ closePd }}" style="width:36px; height:36px; flex:none; border-radius:50%; background:#e8e3da; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px;">✕</span>
+        </div>
+        <sc-if value="{{ pd.viewing }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            <span style="font-weight:600; font-size:22px; line-height:1.15; letter-spacing:-0.01em; text-wrap:pretty;">{{ pd.what }}</span>
+            <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; border-top:1px solid #ddd6ca; border-bottom:1px solid #ddd6ca; padding:12px 0;">
+              <sc-for list="{{ pd.facts }}" as="f" hint-placeholder-count="3">
+                <div style="display:flex; flex-direction:column; gap:2px; min-width:0;">
+                  <span style="font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6f6a62;">{{ f.label }}</span>
+                  <span style="font-weight:600; font-size:15px; color:{{ f.fg }};">{{ f.value }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:14px; font-weight:600;">
+              <span onClick="{{ pd.edit }}" style="cursor:pointer; text-decoration:underline; padding:8px 0;">Edit</span>
+              <span onClick="{{ pd.del }}" style="cursor:pointer; text-decoration:underline; padding:8px 0; color:oklch(0.52 0.15 38);">{{ pd.delLabel }}</span>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ pd.editing }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; gap:18px;">
+            <label style="display:flex; flex-direction:column; gap:4px;">
+              <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6f6a62;">What</span>
+              <input value="{{ ped.what }}" onChange="{{ ped.onWhat }}" style="border:none; border-bottom:1.5px solid #2a2723; background:transparent; outline:none; padding:0 0 6px; font-weight:600; font-size:20px;">
+            </label>
+            <div style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px;">
+              <label style="display:flex; flex-direction:column; gap:4px; min-width:0;">
+                <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6f6a62;">Amount, kr</span>
+                <input value="{{ ped.amount }}" onChange="{{ ped.onAmount }}" inputmode="numeric" style="height:40px; border:none; border-bottom:1px solid #2a2723; background:transparent; outline:none; padding:0; font-weight:600; font-size:18px; min-width:0; width:100%;">
+              </label>
+              <label style="display:flex; flex-direction:column; gap:4px; min-width:0;">
+                <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6f6a62;">Date</span>
+                <input type="date" value="{{ ped.date }}" onChange="{{ ped.onDate }}" style="height:40px; border:none; border-bottom:1px solid #2a2723; border-radius:0; background:transparent; outline:none; padding:0; font-weight:600; font-size:16px; min-width:0; width:100%;">
+              </label>
+            </div>
+            <label style="display:flex; flex-direction:column; gap:4px;">
+              <span style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6f6a62;">Paid from group</span>
+              <select value="{{ ped.group }}" onChange="{{ ped.onGroup }}" style="height:40px; border:none; border-bottom:1px solid #2a2723; border-radius:0; background:transparent; font-weight:600; font-size:16px; padding:0;">
+                <sc-for list="{{ realGroups }}" as="g" hint-placeholder-count="2"><option value="{{ g }}">{{ g }}</option></sc-for>
+              </select>
+            </label>
+            <div style="display:flex; align-items:center; gap:18px; padding-top:4px;">
+              <div onClick="{{ ped.save }}" style="flex:1; height:50px; border-radius:999px; background:#2a2723; color:#f6f3ed; display:flex; align-items:center; justify-content:center; font-weight:600; cursor:pointer;">Save changes</div>
+              <span onClick="{{ ped.cancel }}" style="cursor:pointer; font-size:14px; font-weight:600; text-decoration:underline; padding:8px 0;">Cancel</span>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <div style="position:absolute; bottom:8px; left:50%; transform:translateX(-50%); width:134px; height:5px; border-radius:3px; background:{{ homeInd }}; z-index:6;"></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:844},&quot;startTab&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;new&quot;,&quot;inv&quot;,&quot;sold&quot;,&quot;dash&quot;],&quot;default&quot;:&quot;new&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;pinned&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Explorations&quot;},&quot;markSold&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;pill&quot;,&quot;swipe&quot;],&quot;default&quot;:&quot;pill&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Explorations&quot;},&quot;barColor&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;pillLight&quot;,&quot;pill&quot;,&quot;cream&quot;,&quot;sand&quot;,&quot;black&quot;],&quot;default&quot;:&quot;pillLight&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Explorations&quot;},&quot;fundSeed&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;normal&quot;,&quot;over&quot;,&quot;empty&quot;],&quot;default&quot;:&quot;normal&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Fund demo&quot;},&quot;leftMode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;days&quot;,&quot;photo&quot;],&quot;default&quot;:&quot;days&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const PC = {T:'oklch(0.8 0.15 85)', B:'oklch(0.6 0.19 27)', F:'oklch(0.55 0.16 258)'};
+const PT = {T:'oklch(0.93 0.05 85)', B:'oklch(0.93 0.035 27)', F:'oklch(0.93 0.03 258)'};
+const PTF = {T:'oklch(0.42 0.09 75)', B:'oklch(0.47 0.14 27)', F:'oklch(0.44 0.13 258)'};
+const PLN = {T:'Tradera', B:'Blocket', F:'Facebook'};
+const CONDITIONS = ['Ny','Nyskick','Mycket bra skick','Bra skick','Använt skick','Renoveringsobjekt'];
+const CATS = {T:['Hem & Hushåll › Möbler › Fåtöljer','Hem & Hushåll › Möbler › Övrigt','Other…'],B:['Möbler & Heminredning › Fåtöljer & Soffor','Möbler & Heminredning › Övrigt','Other…'],F:['Home & Garden › Furniture › Chairs','Home & Garden › Furniture','Other…']};
+const ACTIVE = [
+  {id:1,title:'Stokke Tripp Trapp, vit',group:'Old Baby Room',price:1200,plats:['T','B','F'],days:5,cond:'Mycket bra skick',desc:'Stokke Tripp Trapp i vitt med babyset. Små bruksmärken på fotstegen, annars fint skick. Rökfritt hem. Hämtas i Västerås.'},
+  {id:2,title:'Bosch borrmaskin 18V',group:'Garage Cleanout',price:650,plats:['B','F'],days:21,cond:'Bra skick',desc:'Bosch skruvdragare 18V med två batterier och laddare. Fungerar felfritt, lite dammig. Väska ingår.'},
+  {id:3,title:'BeSafe iZi Go babyskydd',group:'Old Baby Room',price:700,plats:['B','F'],days:3,cond:'Mycket bra skick',desc:'BeSafe iZi Go Modular, aldrig krockat. Klädseln nytvättad. Utgångsdatum 2029.'},
+  {id:4,title:'Rörstrand Mon Amie, 6 tallrikar',group:null,price:350,plats:['T'],days:34,cond:'Bra skick',desc:'Sex flata tallrikar Mon Amie, 27 cm. Inga nagg, lätta bestickmärken.'},
+  {id:5,title:'Crescent damcykel 26"',group:'Garage Cleanout',price:1500,plats:['B','F'],days:9,cond:'Bra skick',desc:'Crescent damcykel, 7 växlar, korg och pakethållare. Nyservad i våras.'},
+  {id:6,title:'IKEA Sundvik spjälsäng',group:'Old Baby Room',price:500,plats:['B','F'],days:17,cond:'Använt skick',desc:'Sundvik spjälsäng 60×120 med madrass. Några tuggmärken på kanten. Monteras isär vid hämtning.'},
+  {id:7,title:'Marshall Acton II',group:null,price:1400,plats:['T','B','F'],days:2,cond:'Nyskick',desc:'Marshall Acton II Bluetooth-högtalare, svart. Knappt använd, originalkartong finns.'},
+  {id:8,title:'Makita cirkelsåg 1200W',group:'Garage Cleanout',price:800,plats:['T','B'],days:41,cond:'Bra skick',desc:'Makita cirkelsåg 1200W med nytt klinga. Fungerar som den ska.'}
+];
+const SOLD = [
+  {id:101,title:'Emmaljunga barnvagn',group:'Old Baby Room',price:2200,date:'2026-09-14',dts:6,cond:'Bra skick',desc:'Emmaljunga duo med sittdel och liggdel. Regnskydd ingår.',plats:['B','F']},
+  {id:102,title:'Biltema verktygslåda',group:'Garage Cleanout',price:180,date:'2026-09-02',dts:11,cond:'Använt skick',desc:'Verktygslåda med tre lådor, tom.',plats:['B']},
+  {id:108,title:'Husqvarna gräsklippare',group:'Garage Cleanout',price:2800,date:'2026-08-22',dts:14,cond:'Bra skick',desc:'Husqvarna LC 140 bensindriven gräsklippare. Startar direkt, nyslipad kniv.',plats:['B','F']},
+  {id:109,title:'Thule takbox Motion',group:'Garage Cleanout',price:2240,date:'2026-07-30',dts:9,cond:'Mycket bra skick',desc:'Thule Motion M, 400 liter. Nycklar finns, inga sprickor.',plats:['B']},
+  {id:103,title:'Atomic skidor 170 cm',group:null,price:900,date:'2026-03',dts:null,cond:'Bra skick',desc:'',plats:[]},
+  {id:104,title:'iPhone 11 64GB',group:null,price:2100,date:'2025-11',dts:null,cond:'Mycket bra skick',desc:'',plats:[]},
+  {id:105,title:'BabyBjörn babysitter',group:'Old Baby Room',price:650,date:'2025-06',dts:null,cond:'Bra skick',desc:'',plats:[]},
+  {id:106,title:'Kärcher högtryckstvätt K4',group:'Garage Cleanout',price:800,date:'2025-04',dts:null,cond:'Bra skick',desc:'',plats:[]},
+  {id:107,title:'Soffbord i ek',group:null,price:600,date:'2024-10',dts:null,cond:'Använt skick',desc:'',plats:[]}
+];
+const TODAY = '2026-10-06';
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const num = n => Math.round(n).toLocaleString('sv-SE');
+const kr = n => num(n) + ' kr';
+const ym = d => { const [y,m] = d.split('-'); return `${MON[+m-1]} ${y}`; };
+const dmy = d => { const [y,m,dd] = d.split('-'); return dd ? `${+dd} ${MON[+m-1]} ${y}` : `${MON[+m-1]} ${y}`; };
+const INK = '#2a2723', GREY = '#6f6a62', STALE = 'oklch(0.52 0.15 38)', GREEN = 'oklch(0.5 0.12 150)';
+const ERR = 'Couldn’t generate drafts. Check your connection and try again.';
+const inGroup = (i, f) => f==='All' || (f==='Ungrouped' ? !i.group : i.group===f);
+const genFor = (name, cond) => ({title:`${name} – björk, beige dyna`, titleOk:false,
+  desc:`Säljer ${name.toLowerCase()} i ${cond.toLowerCase()}. Björkfanér med beige dyna, inga fläckar. Dynan är avtagbar och tvättbar. Rökfritt hem. Hämtas i Västerås.`, descOk:false, cats:{}, catsOk:{}, ask:''});
+
+class Component extends DCLogic {
+  dateRef = React.createRef();
+  scrollRef = React.createRef();
+  fileRef = React.createRef();
+  constructor(p){
+    super(p);
+    const name = 'IKEA Poäng chair', condition = 'Mycket bra skick';
+    const sellIt = p.sellOpenId ? ACTIVE.find(i=>i.id===+p.sellOpenId) : null;
+    const seed = p.fundSeed || 'normal';
+    const purposes = {'Garage Cleanout':'Photo gear fund'};
+    const purchases = [{id:201, group:'Garage Cleanout', what:'Sigma 30mm f/1.4 lens', amount:3900, date:'2026-09-20'}];
+    if (seed==='over') { purposes['Old Baby Room'] = 'Playroom fund'; purchases.push({id:202, group:'Old Baby Room', what:'IKEA Trofast hylla + lådor', amount:3400, date:'2026-09-28'}); }
+    if (seed==='empty') purposes['Old Baby Room'] = 'Kids’ bike fund';
+    const fg = p.openGroup || null;
+    this.state = {tab:null, items:ACTIVE, sold:SOLD, groups:['Garage Cleanout','Old Baby Room'],
+      purposes, purchases, fundUi: (fg && p.fundUi) ? {group:fg, mode:p.fundUi} : null,
+      fundForm: p.fundUi==='add' ? {what:'Peak Design Everyday sling', amount:'1150', date:TODAY} : {what:'', amount:'', date:TODAY},
+      purposeDraft: fg ? (purposes[fg] || '') : '', renameDraft: fg || '', delGroup:null,
+      pdetail: p.purchaseId ? +p.purchaseId : null, pediting:false, ped:null, pdelConfirm:false,
+      name, condition, plats:{T:true,B:true,F:true}, group:'Garage Cleanout',
+      stage: p.seedStage==='result' ? 'result' : 'form', title:'', desc:'', titleOk:false, descOk:false, cats:{}, catsOk:{}, ask:'',
+      ...(p.seedStage==='result' ? genFor(name, condition) : {}),
+      genError: p.demoError ? ERR : null,
+      fGroup:'All', sfGroup:'All', openGroup:p.openGroup || null,
+      detail: p.detailId ? {kind:p.detailKind || 'active', id:+p.detailId} : null, editing:false, ed:null, delConfirm:false,
+      sellId: sellIt ? sellIt.id : null, sellPrice: sellIt ? String(sellIt.price) : '', sellDate: TODAY,
+      swipeId: p.swipeOpenId ? +p.swipeOpenId : null,
+      pastOpen:!!p.pastOpen, past:{title:'',group:'None',price:'',date:'2025-06'}, pastCount:0, toast:p.demoToast || null};
+    if (p.detailId && p.detailEdit) Object.assign(this.state, this.editState(this.state.detail));
+    if (p.purchaseId && p.purchaseEdit) { const x = purchases.find(q=>q.id===+p.purchaseId); if (x) Object.assign(this.state, {pediting:true, ped:{what:x.what, amount:String(x.amount), date:x.date, group:x.group}}); }
+  }
+  editState(d){
+    const it = (d.kind==='active' ? this.state.items : this.state.sold).find(x=>x.id===d.id);
+    if (!it) return {};
+    return {editing:true, ed:{title:it.title, price:String(it.price), group:it.group||'None', cond:it.cond, desc:it.desc||'', date:it.date||''}};
+  }
+  componentDidMount(){ if (this.props.scrollTop) setTimeout(()=>{ const el = this.scrollRef.current; if (el) el.scrollTop = +this.props.scrollTop; }, 80); }
+  savePurchase = () => { const s = this.state, f = s.fundForm, g = s.fundUi && s.fundUi.group; if (!g || !f.what.trim() || !f.amount) return;
+    this.setState({purchases:[...s.purchases, {id:Date.now(), group:g, what:f.what.trim(), amount:+f.amount, date:f.date||TODAY}], fundUi:null, fundForm:{what:'', amount:'', date:TODAY}});
+    this.flash('−' + kr(+f.amount)); };
+  renameGroup(from, to){ const s = this.state; to = to.trim(); if (!to || to===from || s.groups.includes(to)) return this.setState({fundUi:null});
+    const mv = x => x.group===from ? {...x, group:to} : x; const pur = {...s.purposes}; if (pur[from]) { pur[to] = pur[from]; delete pur[from]; }
+    this.setState({groups:s.groups.map(g=>g===from?to:g), items:s.items.map(mv), sold:s.sold.map(mv), purchases:s.purchases.map(mv), purposes:pur,
+      group: s.group===from ? to : s.group, fGroup: s.fGroup===from ? to : s.fGroup, sfGroup: s.sfGroup===from ? to : s.sfGroup, openGroup:to, fundUi:null}); this.flash('Renamed'); }
+  deleteGroup(g){ const s = this.state; const un = x => x.group===g ? {...x, group:null} : x; const pur = {...s.purposes}; delete pur[g];
+    this.setState({groups:s.groups.filter(x=>x!==g), items:s.items.map(un), sold:s.sold.map(un), purchases:s.purchases.filter(x=>x.group!==g), purposes:pur,
+      group: s.group===g ? 'None' : s.group, fGroup: s.fGroup===g ? 'All' : s.fGroup, sfGroup: s.sfGroup===g ? 'All' : s.sfGroup, openGroup:null, delGroup:null, fundUi:null}); this.flash('Group deleted'); }
+  flash(m){ this.setState({toast:m}); clearTimeout(this._t); this._t = setTimeout(()=>this.setState({toast:null}),1600); }
+  componentWillUnmount(){ clearTimeout(this._t); clearTimeout(this._g); }
+  generate = () => {
+    this.setState({stage:'generating', genError:null}); clearTimeout(this._g);
+    this._g = setTimeout(()=>{ const s=this.state; this.setState({stage:'result', ...genFor(s.name, s.condition)}); }, 1300);
+  };
+  savePast = () => { const s = this.state, p = s.past; if(!p.title||!p.price) return; const g = p.group==='None'||p.group.startsWith('+') ? null : p.group;
+    this.setState({sold:[...s.sold,{id:Date.now(), title:p.title, group:g, price:+p.price, date:/^\d{4}-\d{2}/.test(p.date)?p.date.slice(0,7):'2025-01', dts:null, cond:'Bra skick', desc:'', plats:[]}], past:{...p,title:'',price:''}, pastCount:s.pastCount+1}); };
+  renderVals(){
+    const s = this.state, P = this.props, tab = s.tab || P.startTab || 'new';
+    const pinned = !!P.pinned, mode = P.markSold === 'swipe' ? 'swipe' : 'pill';
+    const go = tab => () => this.setState({tab, sellId:null, detail:null, editing:false, swipeId:null, fundUi:null, pdetail:null, delGroup:null});
+    const dr = ok => ({fg: ok ? INK : '#8a847a', line: ok ? 'solid' : 'dashed'});
+    const field = (k, okK) => ({value:s[k], ...dr(s[okK]), onChange:e=>this.setState({[k]:e.target.value,[okK]:true})});
+    const checked = Object.keys(PC).filter(k=>s.plats[k]);
+    const canSave = s.ask !== '';
+    const view = (kind, id) => () => this.setState({detail:{kind, id}, editing:false, delConfirm:false});
+    const startSell = it => this.setState({swipeId:null, sellId:it.id, sellPrice:String(it.price), sellDate:TODAY});
+    const rows = s.items.filter(i => inGroup(i, s.fGroup)).sort((a,b)=>b.days-a.days);
+    const rev = s.sold.reduce((a,b)=>a+b.price,0), total = s.items.length + s.sold.length, pct = total ? Math.round(s.sold.length/total*100) : 0;
+    const shades = [INK, '#6f6a62', '#bdb6aa'];
+    const leftOf = g => { const e = s.sold.filter(x=>x.group===g).reduce((t,b)=>t+b.price,0), sp = s.purchases.filter(x=>x.group===g).reduce((t,b)=>t+b.amount,0); return {earned:e, spent:sp, left:e-sp}; };
+    const leftText = l => l < 0 ? kr(-l) + ' over' : kr(l) + ' left';
+    const gData = [...s.groups, null].map((g,i) => {
+      const name = g || 'Ungrouped';
+      const sd = s.sold.filter(x=>(x.group||null)===g), act = s.items.filter(x=>(x.group||null)===g), r = sd.reduce((a,b)=>a+b.price,0), open = s.openGroup===name;
+      const pu = g ? s.purchases.filter(x=>x.group===g).sort((a,b)=>b.date.localeCompare(a.date)) : [];
+      const purpose = g ? (s.purposes[g] || '') : '';
+      const spent = pu.reduce((a,b)=>a+b.amount,0), left = r - spent, over = left < 0, hasFund = !!g && (!!purpose || pu.length>0);
+      const ui = g && s.fundUi && s.fundUi.group===g ? s.fundUi.mode : null;
+      return {name, counts:`${sd.length}/${sd.length+act.length}`, rev:kr(r), pct:`${rev ? r/rev*100 : 0}%`, shade:shades[i%3], open, caret: open ? '–' : '+',
+        toggle:()=>this.setState({openGroup: open ? null : name, fundUi:null, delGroup:null}),
+        soldN:sd.length, actN:act.length, noSold:!sd.length, noAct:!act.length, askTotal:kr(act.reduce((a,b)=>a+b.price,0)),
+        soldItems:sd.map(x=>({title:x.title, price:kr(x.price), view:view('sold',x.id)})),
+        actItems:act.map(x=>({title:x.title, price:kr(x.price), view:view('active',x.id)})),
+        hasFund, purpose, fundLine:`${purpose || 'Fund'} · ${leftText(left)}`, fundFg: over ? STALE : GREEN,
+        spentPct: `${r>0 ? Math.min(100, spent/r*100) : (spent>0 ? 100 : 0)}%`, fundFill: over ? STALE : INK,
+        spentLabel:`Spent ${kr(spent)}`, leftLabel: over ? `Over by ${kr(-left)}` : `Left ${kr(left)}`,
+        boughtHead:`Bought · ${kr(spent)}`, boughtN:`${pu.length} ${pu.length===1?'item':'items'}`, noBought:!pu.length,
+        boughtItems:pu.map(x=>({what:x.what, amount:'−'+kr(x.amount), date:dmy(x.date).replace(/ \d{4}$/,''), view:()=>this.setState({pdetail:x.id, pediting:false, pdelConfirm:false})})),
+        showLinks: !!g && !ui, adding: ui==='add', editingPurpose: ui==='purpose', renaming: ui==='rename',
+        purposeLink: purpose ? 'Purpose' : 'Set purpose', delLabel: s.delGroup===g ? 'Tap again' : 'Delete',
+        openAdd:()=>this.setState({fundUi:{group:g, mode:'add'}, fundForm:{what:'', amount:'', date:TODAY}, delGroup:null}),
+        openPurpose:()=>this.setState({fundUi:{group:g, mode:'purpose'}, purposeDraft:purpose, delGroup:null}),
+        openRename:()=>this.setState({fundUi:{group:g, mode:'rename'}, renameDraft:g, delGroup:null}),
+        del:()=> s.delGroup===g ? this.deleteGroup(g) : this.setState({delGroup:g})};
+    });
+    const chips = (cur, key) => ['All', ...s.groups, 'Ungrouped'].map(g => ({label:g, go:()=>this.setState({[key]:g}), fg: cur===g ? INK : '#aaa397', bar: cur===g ? INK : 'transparent'}));
+    const soldF = [...s.sold].filter(i => inGroup(i, s.sfGroup)).sort((a,b)=>b.date.localeCompare(a.date));
+    const heroes = {new:['New listing', '34px'], inv:[`${s.items.length} for sale`, '34px'], sold:[`${s.sold.length} sold`, '34px'], dash:[kr(rev), '44px']};
+    const leftMode = s.leftMode || P.leftMode || 'days';
+
+    const canBuy = !!(s.fundForm.what.trim() && s.fundForm.amount);
+    let pin = {label:'', go:()=>{}, bg:INK};
+    if (tab==='new' && s.stage==='form') pin = {label:'Generate', go:this.generate, bg:INK};
+    else if (tab==='new' && s.stage==='result') pin = {label:'Save', go:()=>this.saveListing(), bg: canSave ? INK : '#c9c2b6'};
+    else if (tab==='sold' && s.pastOpen) pin = {label:'Save + next', go:this.savePast, bg:INK};
+    else if (tab==='dash' && s.fundUi && s.fundUi.mode==='add') pin = {label:'Save purchase', go:this.savePurchase, bg: canBuy ? INK : '#c9c2b6'};
+    const pinOn = pinned && !!pin.label && !s.detail && !s.pdetail;
+
+    let detail = null, ed = null;
+    if (s.detail) {
+      const act = s.detail.kind==='active', it = (act ? s.items : s.sold).find(x=>x.id===s.detail.id);
+      if (it) {
+        detail = {title:it.title, desc: it.desc || 'No description saved. This sale was backfilled.', active:act && !s.editing,
+          viewing:!s.editing, editing:s.editing, photoH: s.editing ? '120px' : '220px',
+          status: s.editing ? 'Editing' : act ? `For sale · ${it.days} days` : 'Sold',
+          statusFg: s.editing ? INK : act ? (it.days>=30 ? STALE : GREY) : GREEN,
+          facts: act ? [{label:'Asking', value:kr(it.price)},{label:'Condition', value:it.cond},{label:'Group', value:it.group||'Ungrouped'}]
+                     : [{label:'Sold for', value:kr(it.price)},{label:'Condition', value:it.cond},{label:'Sold', value:dmy(it.date)}],
+          plats:(it.plats||[]).map(k=>({label:PLN[k], bg:PT[k], fg:PTF[k]})),
+          sell:()=>this.setState({detail:null, tab:'inv', sellId:it.id, sellPrice:String(it.price), sellDate:TODAY}),
+          edit:()=>this.setState(this.editState(s.detail)),
+          delLabel: s.delConfirm ? 'Tap again to delete' : 'Delete item',
+          del:()=>{ if (!s.delConfirm) return this.setState({delConfirm:true});
+            this.setState(act ? {items:s.items.filter(x=>x.id!==it.id), detail:null, delConfirm:false} : {sold:s.sold.filter(x=>x.id!==it.id), detail:null, delConfirm:false}); this.flash('Deleted'); }};
+        if (s.editing && s.ed) {
+          const e = s.ed, set = k => ev => this.setState({ed:{...s.ed, [k]: k==='price' ? ev.target.value.replace(/[^0-9]/g,'') : ev.target.value}});
+          const backfill = !act && it.dts==null;
+          ed = {...e, onTitle:set('title'), onPrice:set('price'), onGroup:set('group'), onCond:set('cond'), onDesc:set('desc'), onDate:set('date'),
+            priceLabel: act ? 'Asking, kr' : 'Sold for, kr', groupOptions:['None', ...s.groups],
+            hasDate: !act, dateType: backfill ? 'month' : 'date', dateLabel: backfill ? 'Sold (month)' : 'Sale date',
+            cancel:()=>this.setState({editing:false, ed:null}),
+            save:()=>{ const patch = {title:e.title, price:+e.price||it.price, group: e.group==='None' ? null : e.group, cond:e.cond, desc:e.desc, ...(act ? {} : {date:e.date||it.date})};
+              const upd = list => list.map(x => x.id===it.id ? {...x, ...patch} : x);
+              this.setState(act ? {items:upd(s.items), editing:false, ed:null} : {sold:upd(s.sold), editing:false, ed:null}); this.flash('Saved'); }};
+        }
+      }
+    }
+    
+    const BARS = {cream:{bg:'#f6f3ed', rule:'#ddd6ca', on:INK, off:'#9a9489', line:INK, home:INK},
+      sand:{bg:'#efebe3', rule:'#ddd6ca', on:INK, off:'#8f897e', line:INK, home:INK},
+      black:{bg:INK, rule:INK, on:'#f6f3ed', off:'#9a9489', line:'#f6f3ed', home:'#f6f3ed'}};
+    const PILLS = {pill:{pillBg:INK, onBg:'#f6f3ed', onFg:INK, offFg:'#a9a194'}, pillLight:{pillBg:'#e8e3da', onBg:'#f6f3ed', onFg:INK, offFg:GREY}};
+    const pillCfg = PILLS[P.barColor || 'pillLight'];
+    const bar = pillCfg ? {...BARS.cream, ...pillCfg} : (BARS[P.barColor] || BARS.cream);
+    const barH = pillCfg ? 94 : 85;
+    return {
+      tabs:[['new','New'],['inv','Active'],['sold','Sold'],['dash','Total']].map(([id,label]) => ({label, go:go(id), fg: tab===id ? bar.on : bar.off, bar: tab===id ? bar.line : 'transparent', pbg: tab===id ? bar.onBg : 'transparent', pfg: tab===id ? bar.onFg : bar.offFg})),
+      pillBar: !!pillCfg, flatBar: !pillCfg,
+      bar, homeInd: (s.detail || s.pdetail) ? INK : bar.home,
+      hero:heroes[tab][0], heroSize:heroes[tab][1],
+      isNew:tab==='new', isInv:tab==='inv', isSold:tab==='sold', isDash:tab==='dash',
+      inFlow:!pinned, pinOn, pin, genError:s.genError, errorInFlow: !!s.genError && !pinned, errorPinned: !!s.genError && pinned,
+      toastBottom: `${barH + (pinOn ? 54 + (s.genError ? 38 : 0) : 0)}px`,
+      name:s.name, onName:e=>this.setState({name:e.target.value}), group:s.group, onGroup:e=>this.setState({group:e.target.value}), groupOptions:['None', ...s.groups, '+ New group…'],
+      condition:s.condition, onCondition:e=>this.setState({condition:e.target.value}), conditions:CONDITIONS,
+      platToggles: Object.keys(PC).map(k => { const on = !!s.plats[k]; return {label:PLN[k], state: on ? 'On' : 'Off', bg: on ? PT[k] : 'transparent', fg: on ? PTF[k] : '#aaa397', strike: on ? 'none' : 'line-through', toggle:()=>this.setState({plats:{...s.plats,[k]:!on}})}; }),
+      showForm:s.stage==='form', isGenerating:s.stage==='generating', isResult:s.stage==='result', generate:this.generate, backToForm:()=>this.setState({stage:'form'}),
+      title:field('title','titleOk'), desc:field('desc','descOk'),
+      catRows: checked.map(k => ({label:PLN[k], color:PC[k], value:s.cats[k]||CATS[k][0], options:CATS[k], fg: s.catsOk[k] ? INK : '#8a847a', onChange:e=>this.setState({cats:{...s.cats,[k]:e.target.value}, catsOk:{...s.catsOk,[k]:true}})})),
+      ask:s.ask, onAsk:e=>this.setState({ask:e.target.value.replace(/[^0-9]/g,'')}), saveBg: canSave ? INK : '#c9c2b6', save:()=>this.saveListing(),
+      showDays: leftMode==='days', showPhoto: leftMode==='photo',
+      leftModes: [['days','Days'],['photo','Photo']].map(([id,label]) => { const on = leftMode===id; return {label, go:()=>this.setState({leftMode:id}), bg: on ? '#f6f3ed' : 'transparent', fg: on ? INK : GREY}; }),
+      groupChips:chips(s.fGroup,'fGroup'), soldChips:chips(s.sfGroup,'sfGroup'),
+      isSwipe: mode==='swipe', isPill: mode==='pill',
+      invRows: rows.map(i => ({title:i.title, group:i.group||'Ungrouped', price:kr(i.price), days:String(i.days), dFill: i.days>=30 ? STALE : INK,
+        colors:i.plats.map(k=>PC[k]), selling:s.sellId===i.id, tx: mode==='swipe' && s.swipeId===i.id ? '-116px' : '0px',
+        open:e=>{ e && e.stopPropagation(); startSell(i); },
+        down:e=>{ this._sx = e.clientX; this._moved = false; },
+        up:e=>{ if (mode!=='swipe' || this._sx==null) return; const dx = e.clientX - this._sx; this._sx = null;
+          if (Math.abs(dx) > 10) this._moved = true;
+          if (dx < -30) this.setState({swipeId:i.id}); else if (dx > 30) this.setState({swipeId:null}); },
+        click:()=>{ if (this._moved) { this._moved = false; return; } if (this.state.swipeId!=null) return this.setState({swipeId:null}); view('active', i.id)(); }})),
+      sellPrice:s.sellPrice, onSellPrice:e=>this.setState({sellPrice:e.target.value.replace(/[^0-9]/g,'')}), cancelSell:()=>this.setState({sellId:null}),
+      sellDate:s.sellDate, sellDateLabel: s.sellDate===TODAY ? 'today' : dmy(s.sellDate).replace(/ \d{4}$/, ''),
+      onSellDate:e=>this.setState({sellDate:e.target.value || TODAY}), dateRef:this.dateRef,
+      openDatePicker:()=>{ const el = this.dateRef.current; if (!el) return; try { el.showPicker(); } catch(_) { el.focus(); el.click(); } },
+      confirmSell:()=>{ const it = s.items.find(i=>i.id===s.sellId); if(!it) return; const p = +s.sellPrice||it.price;
+        this.setState({items:s.items.filter(i=>i.id!==it.id), sold:[{...it, price:p, date:s.sellDate, dts:it.days}, ...s.sold], sellId:null}); this.flash(`+${kr(p)}`); },
+      pastOpen:s.pastOpen, togglePast:()=>this.setState({pastOpen:!s.pastOpen, pastCount:0}), pastBg: s.pastOpen ? INK : 'transparent', pastFg: s.pastOpen ? '#f6f3ed' : INK,
+      pastCountLabel: s.pastCount ? `${s.pastCount} added` : 'backlog', past:s.past,
+      onPastTitle:e=>this.setState({past:{...s.past,title:e.target.value}}), onPastPrice:e=>this.setState({past:{...s.past,price:e.target.value.replace(/[^0-9]/g,'')}}),
+      onPastDate:e=>this.setState({past:{...s.past,date:e.target.value}}), onPastGroup:e=>this.setState({past:{...s.past,group:e.target.value}}),
+      savePast:this.savePast,
+      soldRows:soldF.map(i => ({title:i.title, price:kr(i.price), view:view('sold', i.id), meta:`${i.group||'Ungrouped'} · ${ym(i.date)} · ${i.dts==null ? 'backfilled' : i.dts+' days to sell'}`})),
+      soldFilterLabel: s.sfGroup==='All' ? `All groups · ${soldF.length} items` : `${s.sfGroup} · ${soldF.length} items`,
+      soldFilterTotal: kr(soldF.reduce((a,b)=>a+b.price,0)),
+      soldCount:s.sold.length, activeCount:s.items.length, total, pct:`${pct}%`, groupRows:gData, revenue:kr(rev),
+      fileRef:this.fileRef,
+      exportData:()=>{ try { const blob = new Blob([JSON.stringify({app:'resale-prep', version:'1.2', exported:TODAY, groups:s.groups, items:s.items, sold:s.sold}, null, 2)], {type:'application/json'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `resale-backup-${TODAY}.json`; a.click(); } catch(_) {} this.flash('Backup exported'); },
+      importData:()=>{ const el = this.fileRef.current; if (el) el.click(); },
+      onImport:e=>{ const f = e.target.files && e.target.files[0]; if (!f) return; const r = new FileReader();
+        r.onload = () => { try { const d = JSON.parse(r.result); if (!Array.isArray(d.items) || !Array.isArray(d.sold)) throw 0;
+          this.setState({items:d.items, sold:d.sold, groups:d.groups || s.groups}); this.flash('Backup imported'); } catch(_) { this.flash('Not a backup file'); } };
+        r.readAsText(f); e.target.value = ''; },
+      scrollRef:this.scrollRef, realGroups:s.groups,
+      fundForm:s.fundForm, onFundWhat:e=>this.setState({fundForm:{...s.fundForm, what:e.target.value}}),
+      onFundAmount:e=>this.setState({fundForm:{...s.fundForm, amount:e.target.value.replace(/[^0-9]/g,'')}}),
+      onFundDate:e=>this.setState({fundForm:{...s.fundForm, date:e.target.value}}),
+      savePurchase:this.savePurchase, buyChipBg: canBuy ? '#f6f3ed' : '#8a847a',
+      fundPreview: (()=>{ const g = s.fundUi && s.fundUi.group; if (!g) return ''; const l = leftOf(g).left - (+s.fundForm.amount||0); return 'After this: ' + leftText(l); })(),
+      closeFundUi:()=>this.setState({fundUi:null}),
+      purposeDraft:s.purposeDraft, onPurposeDraft:e=>this.setState({purposeDraft:e.target.value}),
+      savePurpose:()=>{ const g = s.fundUi.group, v = s.purposeDraft.trim(), pur = {...s.purposes}; if (v) pur[g] = v; else delete pur[g]; this.setState({purposes:pur, fundUi:null}); },
+      removePurpose:()=>{ const pur = {...s.purposes}; delete pur[s.fundUi.group]; this.setState({purposes:pur, fundUi:null}); },
+      renameDraft:s.renameDraft, onRenameDraft:e=>this.setState({renameDraft:e.target.value}), saveRename:()=>this.renameGroup(s.fundUi.group, s.renameDraft),
+      pd: (()=>{ const x = s.pdetail ? s.purchases.find(q=>q.id===s.pdetail) : null; if (!x) return null; const l = leftOf(x.group).left;
+        return {what:x.what, viewing:!s.pediting, editing:s.pediting, status: s.pediting ? 'Editing purchase' : `Purchase · ${x.group}`, statusFg: s.pediting ? INK : GREY,
+          facts:[{label:'Amount', value:'−'+kr(x.amount), fg:INK},{label:'Date', value:dmy(x.date), fg:INK},{label:'Fund', value:leftText(l), fg: l<0 ? STALE : GREEN}],
+          edit:()=>this.setState({pediting:true, ped:{what:x.what, amount:String(x.amount), date:x.date, group:x.group}}),
+          delLabel: s.pdelConfirm ? 'Tap again to delete' : 'Delete purchase',
+          del:()=>{ if (!s.pdelConfirm) return this.setState({pdelConfirm:true}); this.setState({purchases:s.purchases.filter(q=>q.id!==x.id), pdetail:null, pdelConfirm:false}); this.flash('Purchase deleted'); }}; })(),
+      ped: (()=>{ if (!s.pediting || !s.ped) return null; const e = s.ped, set = k => ev => this.setState({ped:{...s.ped, [k]: k==='amount' ? ev.target.value.replace(/[^0-9]/g,'') : ev.target.value}});
+        return {...e, onWhat:set('what'), onAmount:set('amount'), onDate:set('date'), onGroup:set('group'),
+          cancel:()=>this.setState({pediting:false, ped:null}),
+          save:()=>{ this.setState({purchases:s.purchases.map(q=>q.id===s.pdetail ? {...q, what:e.what.trim()||q.what, amount:+e.amount||q.amount, date:e.date||q.date, group:e.group} : q), pediting:false, ped:null}); this.flash('Saved'); }}; })(),
+      closePd:()=>this.setState({pdetail:null, pediting:false, ped:null, pdelConfirm:false}),
+      detail, ed, closeDetail:()=>this.setState({detail:null, editing:false, ed:null, delConfirm:false}), toast:s.toast
+    };
+  }
+  saveListing(){ const s = this.state; if (s.ask==='') return; const g = s.group==='None'||s.group.startsWith('+') ? null : s.group;
+    const plats = Object.keys(PC).filter(k=>s.plats[k]);
+    this.setState({items:[{id:Date.now(), title:s.title, desc:s.desc, cond:s.condition, group:g, price:+s.ask, plats, days:0}, ...s.items], stage:'form', tab:'inv', fGroup:'All'}); this.flash('Saved →'); }
+}
+</script>
+</body>
+</html>

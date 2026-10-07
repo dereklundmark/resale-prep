@@ -83,7 +83,7 @@ describe('stats', () => {
   });
 
   it('summarises per group with an Ungrouped bucket', () => {
-    const groups: Group[] = [{ id: 'g1', name: 'Garage', description: null, createdAt: '' }];
+    const groups: Group[] = [{ id: 'g1', name: 'Garage', description: null, purpose: null, createdAt: '' }];
     const items = [
       item({ groupId: 'g1', status: 'sold', priceSold: 500 }),
       item({ groupId: 'g1', priceListed: 300 }),
@@ -96,3 +96,24 @@ describe('stats', () => {
   });
 });
 
+
+describe('group funds', () => {
+  const groups: Group[] = [{ id: 'g1', name: 'Garage Cleanup', description: null, purpose: 'Photo gear fund', createdAt: '' }];
+  const sales = [item({ groupId: 'g1', status: 'sold', priceSold: 6020 })];
+  const lens = { id: 'p1', groupId: 'g1', title: 'Lens', amount: 3900, currencyCode: 'SEK', date: '2026-09-20', notes: null, createdAt: '' };
+
+  it('left = earned - spent; purchases never change earned', () => {
+    const [g] = groupSummaries(sales, groups, [lens]);
+    expect(g).toMatchObject({ revenue: 6020, spent: 3900, left: 2120, hasFund: true });
+  });
+  it('goes negative when overspent', () => {
+    const [g] = groupSummaries(sales, groups, [lens, { ...lens, id: 'p2', amount: 3000 }]);
+    expect(g.left).toBe(-880);
+  });
+  it('a group is a fund only with a purpose or purchases; Ungrouped never is', () => {
+    const plain = [{ ...groups[0], purpose: null }];
+    const [g, ungrouped] = groupSummaries(sales, plain, []);
+    expect(g.hasFund).toBe(false);
+    expect(ungrouped.hasFund).toBe(false);
+  });
+});

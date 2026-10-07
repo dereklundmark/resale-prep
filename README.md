@@ -63,8 +63,8 @@ Semantic versioning (MAJOR.MINOR.PATCH), bumped in the same commit as each chang
 
 | Path | What |
 |---|---|
-| `sql/` | Database scripts: tables (001), app login (002), starting data (003) |
-| `api/src/functions/` | The API: `config`, `items` (+ groups), `photos`, `generate` |
+| `sql/` | Database scripts: tables (001), app login (002), starting data (003), backfills (004), funds (005) |
+| `api/src/functions/` | The API: `config`, `items` (+ groups, purchases), `photos`, `generate` |
 | `api/src/lib/db.ts` | SQL connection; retries while the paused database wakes up |
 | `src/lib/types.ts` | Data model (mirrors the SQL tables and the API's JSON) |
 | `src/lib/stats.ts` | Everything derived: days listed, days to sell, group totals |
@@ -74,11 +74,12 @@ Semantic versioning (MAJOR.MINOR.PATCH), bumped in the same commit as each chang
 | `src/data/backup.ts` | Export / import of all data as JSON |
 | `src/screens/` | NEW, ACTIVE, SOLD, TOTAL |
 | `src/components/DetailSheet.tsx` | Item detail overlay (view, edit, delete) |
+| `src/components/PurchaseSheet.tsx` | A fund purchase: view, edit, move, delete |
 | `src/components/Pinned.tsx` | Puts a screen's main action band in the dock above the tab bar |
 
 ## Design version
 
-Built from **design v2** ([`docs/design/ResaleFinal_v2.dc.html`](docs/design/ResaleFinal_v2.dc.html),
+Built from **design v2 + v3** (v3 adds group funds) ([`docs/design/ResaleFinal_v2.dc.html`](docs/design/ResaleFinal_v2.dc.html),
 spec in [`docs/design/README.md`](docs/design/README.md)), with its explorations set to: light
 pill tab bar at the bottom,
 **pinned** action band (GENERATE / SAVE / SAVE + NEXT above the tabs), and **swipe left** to
@@ -92,5 +93,8 @@ Where the app deliberately differs from the v2 spec:
 - Confirmed (black) fields survive a Redo; only grey AI drafts are replaced.
 - The detail sheet also lists the saved category per platform, and the edit form's group
   picker can create a new group.
+- Deleting a group with items or purchases asks where to move them (v3 moved items to
+  Ungrouped and deleted purchases without asking), and TOTAL keeps hiding empty Sold /
+  For sale sections.
 - Backfilled sales are stored as the 1st of their month (`YYYY-MM-01`, with `isBackfill`)
   rather than as `YYYY-MM`; the UI shows them as months.
