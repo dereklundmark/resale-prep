@@ -49,13 +49,6 @@
       ]
     },
     {
-      "route": "/workbox-*.js",
-      "allowedRoles": [
-        "anonymous",
-        "authenticated"
-      ]
-    },
-    {
       "route": "/*",
       "allowedRoles": [
         "owner"

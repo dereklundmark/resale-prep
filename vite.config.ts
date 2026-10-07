@@ -48,6 +48,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,woff2,png,svg,ico}'],
+        // One sw.js with the workbox runtime inside it, so the only update file
+        // (public in staticwebapp.config.json) needs no login.
+        inlineWorkboxRuntime: true,
         // Never answer API calls or the login pages from the offline cache.
         navigateFallbackDenylist: [/^\/api\//, /^\/\.auth\//, /^\/403\.html$/],
       },
