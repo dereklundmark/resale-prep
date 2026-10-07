@@ -4,6 +4,11 @@ Versions follow [semantic versioning](https://semver.org): **MAJOR.MINOR.PATCH**
 patch for fixes, minor for new features, major for big changes. The version shows in the
 footer of the TOTAL screen, next to the commit it was built from.
 
+## 1.0.1 (2026-10-07)
+
+- The "database settings missing" message now names exactly which SQL_* setting is missing,
+  and setting values are trimmed so a stray space doesn't break the connection.
+
 ## 1.0.0 (2026-10-07)
 
 First real release: live on Azure, data in Azure SQL.

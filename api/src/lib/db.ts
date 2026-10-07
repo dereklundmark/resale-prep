@@ -12,9 +12,15 @@ const WAKE_BUDGET_MS = 30_000;
 let poolPromise: Promise<sql.ConnectionPool> | null = null;
 
 function connectionConfig(): sql.config {
-  const { SQL_SERVER, SQL_DATABASE, SQL_USER, SQL_PASSWORD } = process.env;
+  const names = ['SQL_SERVER', 'SQL_DATABASE', 'SQL_USER', 'SQL_PASSWORD'] as const;
+  // Trimmed, so a value pasted with a stray space still works.
+  const [SQL_SERVER, SQL_DATABASE, SQL_USER, SQL_PASSWORD] = names.map((n) => process.env[n]?.trim());
+  const missing = names.filter((n) => !process.env[n]?.trim());
   if (!SQL_SERVER || !SQL_DATABASE || !SQL_USER || !SQL_PASSWORD) {
-    throw new HttpError(500, 'Database settings are missing. Add SQL_SERVER, SQL_DATABASE, SQL_USER and SQL_PASSWORD under Static Web App → Environment variables.');
+    throw new HttpError(
+      500,
+      `Database setting${missing.length > 1 ? 's' : ''} missing: ${missing.join(', ')}. Add ${missing.length > 1 ? 'them' : 'it'} under Static Web App → Settings → Environment variables (Production), then Apply.`,
+    );
   }
   return {
     server: SQL_SERVER,
