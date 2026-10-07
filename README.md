@@ -26,6 +26,11 @@ The app icon (an ink price tag) is `scripts/icon.svg`. The PNGs in `public/icons
 from it at each size with no extra padding, e.g.
 `npx -p sharp-cli sharp -i scripts/icon.svg -o public/icons/pwa-512x512.png resize 512 512`.
 
+## Versions
+
+Semantic versioning (MAJOR.MINOR.PATCH), bumped in the same commit as each change; see
+[CHANGELOG.md](CHANGELOG.md). The TOTAL footer shows the version, commit and build date.
+
 ## Decisions
 
 - **Cost: must be 100% free.** Only use services with a permanent free tier.
