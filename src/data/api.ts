@@ -23,6 +23,16 @@ export function onWaking(fn: WakingListener): void {
 const WAKE_RETRIES = 4;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * The login session has expired: go through GitHub sign-in and come back here.
+ * (The installed app opens from its offline copy without asking the server,
+ * so the first API call is where an expired login shows up.)
+ */
+function signInAgain(): never {
+  window.location.assign(`/.auth/login/github?post_login_redirect_uri=${encodeURIComponent(window.location.pathname)}`);
+  throw new ApiError('Signing you in again…', 401);
+}
+
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   for (let attempt = 0; ; attempt++) {
     let res: Response;
@@ -30,11 +40,16 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
       res = await fetch(path, {
         ...init,
         headers: init.body ? { 'Content-Type': 'application/json', ...init.headers } : init.headers,
+        // With an expired login, Static Web Apps answers with a redirect to
+        // GitHub. Following it from a background request fails like a network
+        // error, so don't follow it; recognise it instead.
+        redirect: 'manual',
       });
     } catch {
       wakingListener(false);
       throw new ApiError('Could not reach the server. Check your connection.', 0);
     }
+    if (res.type === 'opaqueredirect' || res.status === 401) signInAgain();
     const body = (await res.json().catch(() => null)) as (T & { error?: string; waking?: boolean }) | null;
 
     // Azure's own timeout (no JSON) also usually means the database was asleep.
@@ -46,8 +61,8 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     }
     wakingListener(false);
 
-    if (res.status === 401 || res.status === 403) {
-      throw new ApiError('Your sign-in has expired. Reload the app to sign in again.', res.status);
+    if (res.status === 403) {
+      throw new ApiError("This account doesn't have access. Sign out and sign in with the owner account.", 403);
     }
     if (!res.ok) throw new ApiError(body?.error ?? `Request failed (HTTP ${res.status}).`, res.status);
     return body as T;

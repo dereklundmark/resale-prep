@@ -4,6 +4,12 @@ Versions follow [semantic versioning](https://semver.org): **MAJOR.MINOR.PATCH**
 patch for fixes, minor for new features, major for big changes. The version shows in the
 footer of the TOTAL screen, next to the commit it was built from.
 
+## 1.1.2 (2026-10-07)
+
+- An expired login now sends you through GitHub sign-in and back automatically. Before,
+  the installed app opened from its offline copy and every request failed with "Could not
+  reach the server", because the redirect to the login page was blocked.
+
 ## 1.1.1 (2026-10-07)
 
 - Sharper home-screen icon: each size is drawn with its straight edges on whole pixels
