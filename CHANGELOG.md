@@ -9,6 +9,8 @@ footer of the TOTAL screen, next to the commit it was built from.
 - An expired login now sends you through GitHub sign-in and back automatically. Before,
   the installed app opened from its offline copy and every request failed with "Could not
   reach the server", because the redirect to the login page was blocked.
+- The app's update files (service worker) are reachable without a login, so an installed
+  app still updates itself after its session expires. Data stays behind the owner login.
 
 ## 1.1.1 (2026-10-07)
 
