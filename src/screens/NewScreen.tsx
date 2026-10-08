@@ -118,6 +118,24 @@ export function NewScreen({ draft, setDraft, onSaved }: Props) {
     }
   };
 
+  // ---- write it yourself ----
+  // Straight to the listing form without Gemini: for when you already know
+  // the text and price, or Gemini is busy. "What is it?" becomes the title.
+  const writeYourself = () =>
+    setDraft((d) => {
+      const name = d.name.trim();
+      const useName = !d.title && name !== '';
+      return {
+        ...d,
+        stage: 'result',
+        error: null,
+        title: useName ? name : d.title,
+        titleOk: d.titleOk || useName,
+      };
+    });
+  /** Gemini has filled this draft at least once (Redo vs Generate, legend). */
+  const aiUsed = draft.estimate !== null || Object.keys(draft.categoryOptions).length > 0;
+
   // ---- save ----
   const canSave = draft.ask !== '' && draft.title.trim() !== '';
   const missingTitle = draft.title.trim() === '';
@@ -181,106 +199,115 @@ export function NewScreen({ draft, setDraft, onSaved }: Props) {
       <div className="new">
         <div className="result">
           <div className="legend-row">
-            <span style={{ color: 'var(--grey)' }}>Grey = AI draft · Black = yours</span>
+            <span style={{ color: 'var(--grey)' }}>{aiUsed ? 'Grey = AI draft · Black = yours' : 'Written by you'}</span>
             <span className="links">
-              <button type="button" onClick={() => void generate()}>
-                Redo
-              </button>
+              {(aiUsed || canGenerate) && (
+                <button type="button" onClick={() => void generate()}>
+                  {aiUsed ? 'Redo' : 'Generate'}
+                </button>
+              )}
               <button type="button" onClick={() => set({ stage: 'form' })}>
                 Edit item
               </button>
             </span>
           </div>
-          <label className="field">
-            <span className="label">Title</span>
-            <textarea
-              ref={titleRef}
-              className={`title-area draftable ${draft.titleOk ? 'ok' : ''}`}
-              rows={2}
-              value={draft.title}
-              onChange={(e) => set({ title: e.target.value, titleOk: true })}
-            />
-          </label>
+          <div className="result-main">
+            <label className="field">
+              <span className="label">Title</span>
+              <textarea
+                ref={titleRef}
+                className={`title-area draftable ${draft.titleOk ? 'ok' : ''}`}
+                rows={2}
+                value={draft.title}
+                onChange={(e) => set({ title: e.target.value, titleOk: true })}
+              />
+            </label>
 
-          <label className="field">
-            <span className="label">Description</span>
-            <textarea
-              className={`desc-area draftable ${draft.descriptionOk ? 'ok' : ''}`}
-              rows={6}
-              value={draft.description}
-              onChange={(e) => set({ description: e.target.value, descriptionOk: true })}
-            />
-          </label>
+            <label className="field">
+              <span className="label">Description</span>
+              <textarea
+                className={`desc-area draftable ${draft.descriptionOk ? 'ok' : ''}`}
+                rows={6}
+                value={draft.description}
+                onChange={(e) => set({ description: e.target.value, descriptionOk: true })}
+              />
+            </label>
+          </div>
 
-          {checked.length > 0 && (
-            <div>
-              {checked.map((p) => {
-                const options = draft.categoryOptions[p] ?? [];
-                const other = draft.categoriesOther[p] || (options.length === 0 && draft.categories[p] === undefined);
-                const setCat = (patch: Partial<NewDraft>) =>
-                  setDraft((d) => ({ ...d, ...patch, categoriesOk: { ...d.categoriesOk, [p]: true } }));
-                return (
-                  <div key={p} className="cat-row">
-                    <div className="cat-stripe" style={{ background: platformInfo(p)?.colorStrong }} />
-                    <div className={`cat-body draftable ${draft.categoriesOk[p] ? 'ok' : ''}`}>
-                      <span className="label ink">{platformInfo(p)?.name ?? p}</span>
-                      <select
-                        value={other ? OTHER : (draft.categories[p] ?? '')}
-                        onChange={(e) =>
-                          e.target.value === OTHER
-                            ? setCat({
-                                categories: { ...draft.categories, [p]: '' },
-                                categoriesOther: { ...draft.categoriesOther, [p]: true },
-                              })
-                            : setCat({
-                                categories: { ...draft.categories, [p]: e.target.value },
-                                categoriesOther: { ...draft.categoriesOther, [p]: false },
-                              })
-                        }
-                      >
-                        {options.map((o) => (
-                          <option key={o} value={o}>
-                            {o}
-                          </option>
-                        ))}
-                        <option value={OTHER}>Other…</option>
-                      </select>
-                      {other && (
-                        <input
-                          value={draft.categories[p] ?? ''}
-                          placeholder="Type the category"
-                          onChange={(e) => setCat({ categories: { ...draft.categories, [p]: e.target.value } })}
-                        />
-                      )}
+          <div className="result-side">
+            {checked.length > 0 && (
+              <div>
+                {checked.map((p) => {
+                  const options = draft.categoryOptions[p] ?? [];
+                  // No suggestions (written by you, or none came back): just a text box.
+                  const other = draft.categoriesOther[p] || options.length === 0;
+                  const setCat = (patch: Partial<NewDraft>) =>
+                    setDraft((d) => ({ ...d, ...patch, categoriesOk: { ...d.categoriesOk, [p]: true } }));
+                  return (
+                    <div key={p} className="cat-row">
+                      <div className="cat-stripe" style={{ background: platformInfo(p)?.colorStrong }} />
+                      <div className={`cat-body draftable ${draft.categoriesOk[p] ? 'ok' : ''}`}>
+                        <span className="label ink">{platformInfo(p)?.name ?? p}</span>
+                        {options.length > 0 && (
+                          <select
+                            value={other ? OTHER : (draft.categories[p] ?? '')}
+                            onChange={(e) =>
+                              e.target.value === OTHER
+                                ? setCat({
+                                    categories: { ...draft.categories, [p]: '' },
+                                    categoriesOther: { ...draft.categoriesOther, [p]: true },
+                                  })
+                                : setCat({
+                                    categories: { ...draft.categories, [p]: e.target.value },
+                                    categoriesOther: { ...draft.categoriesOther, [p]: false },
+                                  })
+                            }
+                          >
+                            {options.map((o) => (
+                              <option key={o} value={o}>
+                                {o}
+                              </option>
+                            ))}
+                            <option value={OTHER}>Other…</option>
+                          </select>
+                        )}
+                        {other && (
+                          <input
+                            value={draft.categories[p] ?? ''}
+                            placeholder="Type the category"
+                            onChange={(e) => setCat({ categories: { ...draft.categories, [p]: e.target.value } })}
+                          />
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            )}
 
-          {draft.estimate && (
-            <div className="estimate">
-              <span className="label">AI estimate</span>
-              <span className="range">
-                {num(draft.estimate.low, market.locale)}–{num(draft.estimate.high, market.locale)}
-              </span>
-              <span className="why">{draft.estimate.reasoning}</span>
-            </div>
-          )}
+            {draft.estimate && (
+              <div className="estimate">
+                <span className="label">AI estimate</span>
+                <span className="range">
+                  {num(draft.estimate.low, market.locale)}–{num(draft.estimate.high, market.locale)}
+                </span>
+                <span className="why">{draft.estimate.reasoning}</span>
+              </div>
+            )}
 
-          <label className="field">
-            <span className="label ink">Your price, kr</span>
-            <input
-              ref={priceRef}
-              className="price-input"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              placeholder="Type your price"
-              value={draft.ask}
-              onChange={(e) => set({ ask: digitsOnly(e.target.value) })}
-            />
-          </label>
+            <label className="field">
+              <span className="label ink">Your price, kr</span>
+              <input
+                ref={priceRef}
+                className="price-input"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="Type your price"
+                value={draft.ask}
+                onChange={(e) => set({ ask: digitsOnly(e.target.value) })}
+              />
+            </label>
+          </div>
         </div>
         <Pinned>
           {draft.error && <div className="pin-error">{draft.error}</div>}
@@ -302,7 +329,7 @@ export function NewScreen({ draft, setDraft, onSaved }: Props) {
 
   const first = draft.photos[0];
   return (
-    <div className="new">
+    <div className="new new-form">
       <input
         ref={addInput}
         className="hidden-file"
@@ -324,93 +351,100 @@ export function NewScreen({ draft, setDraft, onSaved }: Props) {
           e.target.value = '';
         }}
       />
-      <div
-        className={`photo-box ${first ? 'has-photo' : ''}`}
-        role="button"
-        tabIndex={0}
-        onClick={() => (first ? replaceInput : addInput).current?.click()}
-      >
-        {first && <img src={first.fullUrl} alt="" />}
-        <span className="photo-caption">
-          {busy ? 'processing…' : first ? 'item photo · tap to retake' : 'tap to add photo'}
-        </span>
-        <button
-          type="button"
-          className="photo-plus"
-          aria-label="Add another photo"
-          onClick={(e) => {
-            e.stopPropagation();
-            addInput.current?.click();
-          }}
+      <div className="new-media">
+        <div
+          className={`photo-box ${first ? 'has-photo' : ''}`}
+          role="button"
+          tabIndex={0}
+          onClick={() => (first ? replaceInput : addInput).current?.click()}
         >
-          +1
-        </button>
-      </div>
-      {draft.photos.length > 1 && (
-        <div className="thumb-strip">
-          {draft.photos.map((p, i) => (
-            <div key={p.id} className={`thumb ${i === 0 ? 'first' : ''}`}>
-              <button type="button" aria-label="Use as main photo" onClick={() => makeFirst(p.id)}>
-                <img src={p.thumbUrl} alt="" />
-              </button>
-              <button type="button" className="x" aria-label="Remove photo" onClick={() => removePhoto(p.id)}>
-                ✕
-              </button>
-            </div>
-          ))}
+          {first && <img src={first.fullUrl} alt="" />}
+          <span className="photo-caption">
+            {busy ? 'processing…' : first ? 'item photo · tap to retake' : 'tap to add photo'}
+          </span>
+          <button
+            type="button"
+            className="photo-plus"
+            aria-label="Add another photo"
+            onClick={(e) => {
+              e.stopPropagation();
+              addInput.current?.click();
+            }}
+          >
+            +1
+          </button>
         </div>
-      )}
+        {draft.photos.length > 1 && (
+          <div className="thumb-strip">
+            {draft.photos.map((p, i) => (
+              <div key={p.id} className={`thumb ${i === 0 ? 'first' : ''}`}>
+                <button type="button" aria-label="Use as main photo" onClick={() => makeFirst(p.id)}>
+                  <img src={p.thumbUrl} alt="" />
+                </button>
+                <button type="button" className="x" aria-label="Remove photo" onClick={() => removePhoto(p.id)}>
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
-      <div className="fields">
-        <input
-          className="name-input"
-          placeholder="What is it?"
-          value={draft.name}
-          onChange={(e) => set({ name: e.target.value })}
-        />
-        <div className="grid2">
-          <label className="field">
-            <span className="label">Condition</span>
-            <select
-              className="line-select"
-              value={draft.condition}
-              onChange={(e) => set({ condition: e.target.value })}
-            >
-              {conditions.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {conditionLabel(c.code)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="field">
-            <span className="label">Group</span>
-            <GroupSelect value={draft.groupId} onChange={(groupId) => set({ groupId })} />
+      <div className="new-details">
+        <div className="fields">
+          <input
+            className="name-input"
+            placeholder="What is it?"
+            value={draft.name}
+            onChange={(e) => set({ name: e.target.value })}
+          />
+          <div className="grid2">
+            <label className="field">
+              <span className="label">Condition</span>
+              <select
+                className="line-select"
+                value={draft.condition}
+                onChange={(e) => set({ condition: e.target.value })}
+              >
+                {conditions.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {conditionLabel(c.code)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="field">
+              <span className="label">Group</span>
+              <GroupSelect value={draft.groupId} onChange={(groupId) => set({ groupId })} />
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="plat-toggles">
-        {activePlatforms.map((p) => {
-          const on = !draft.platformsOff.includes(p.code);
-          return (
-            <button
-              key={p.code}
-              type="button"
-              className={`plat-toggle ${on ? 'on' : ''}`}
-              aria-pressed={on}
-              style={on ? { background: p.colorTint, color: p.colorText } : undefined}
-              onClick={() =>
-                set({
-                  platformsOff: on ? [...draft.platformsOff, p.code] : draft.platformsOff.filter((c) => c !== p.code),
-                })
-              }
-            >
-              <span className="name">{p.name}</span>
-              <span className="state">{on ? 'On' : 'Off'}</span>
-            </button>
-          );
-        })}
+        <div className="plat-toggles">
+          {activePlatforms.map((p) => {
+            const on = !draft.platformsOff.includes(p.code);
+            return (
+              <button
+                key={p.code}
+                type="button"
+                className={`plat-toggle ${on ? 'on' : ''}`}
+                aria-pressed={on}
+                style={on ? { background: p.colorTint, color: p.colorText } : undefined}
+                onClick={() =>
+                  set({
+                    platformsOff: on ? [...draft.platformsOff, p.code] : draft.platformsOff.filter((c) => c !== p.code),
+                  })
+                }
+              >
+                <span className="name">{p.name}</span>
+                <span className="state">{on ? 'On' : 'Off'}</span>
+              </button>
+            );
+          })}
+        </div>
+        <button type="button" className="write-yourself" onClick={writeYourself}>
+          Skip Gemini · write it yourself →
+        </button>
       </div>
       <Pinned>
         {draft.error && <div className="pin-error">{draft.error}</div>}

@@ -22,6 +22,8 @@ interface ItemDto {
   groupId: string | null;
   platforms: string[];
   categories: Record<string, string>;
+  /** platform -> day the listing went live there; missing = not posted yet. */
+  posted: Record<string, string>;
   priceListed: number | null;
   priceSold: number | null;
   status: 'active' | 'sold';
@@ -86,6 +88,13 @@ function parseItem(body: unknown, idFromUrl?: string): ItemDto {
       if (c) categories[k] = c;
     }
   }
+  const posted: Record<string, string> = {};
+  if (typeof b.posted === 'object' && b.posted !== null) {
+    for (const [k, v] of Object.entries(b.posted)) {
+      const d = optDate(v, `posted date for ${k}`);
+      if (d && platforms.includes(k)) posted[k] = d;
+    }
+  }
   const e = b.aiEstimate as Record<string, unknown> | null | undefined;
   return {
     id,
@@ -98,6 +107,7 @@ function parseItem(body: unknown, idFromUrl?: string): ItemDto {
     groupId: b.groupId ? guid(b.groupId, 'groupId') : null,
     platforms: [...new Set(platforms)],
     categories,
+    posted,
     priceListed: optMoney(b.priceListed, 'priceListed'),
     priceSold: optMoney(b.priceSold, 'priceSold'),
     status: b.status,
@@ -166,7 +176,9 @@ async function replacePlatforms(tx: sql.Transaction, it: ItemDto): Promise<void>
       .input('id', sql.UniqueIdentifier, it.id)
       .input('code', sql.VarChar(30), code)
       .input('category', sql.NVarChar(200), it.categories[code] ?? null)
-      .query('INSERT dbo.item_platforms (item_id, platform_code, category) VALUES (@id, @code, @category);');
+      .input('posted_on', sql.Date, utcDate(it.posted[code] ?? null))
+      .query(`INSERT dbo.item_platforms (item_id, platform_code, category, posted_on)
+              VALUES (@id, @code, @category, @posted_on);`);
   }
 }
 
@@ -390,7 +402,7 @@ async function listAll() {
              group_id, price_listed, price_sold, status, date_listed, date_sold, is_backfill,
              ai_estimate_low, ai_estimate_high, ai_estimate_reasoning, notes, created_at
         FROM dbo.items;
-      SELECT item_id, platform_code, category FROM dbo.item_platforms;
+      SELECT item_id, platform_code, category, posted_on FROM dbo.item_platforms;
       SELECT id, item_id FROM dbo.photos ORDER BY item_id, position;
       SELECT id, name, description, purpose, created_at FROM dbo.groups ORDER BY created_at;
       SELECT id, group_id, title, amount, currency_code, purchase_date, notes, created_at
@@ -399,12 +411,16 @@ async function listAll() {
 
     // GUIDs come back upper-case from SQL Server; the app uses lower-case.
     const low = (v: unknown) => (v === null || v === undefined ? null : String(v).toLowerCase());
-    const platformsOf = new Map<string, { codes: string[]; categories: Record<string, string> }>();
+    const platformsOf = new Map<
+      string,
+      { codes: string[]; categories: Record<string, string>; posted: Record<string, string> }
+    >();
     for (const p of platformRows) {
       const key = low(p.item_id)!;
-      const entry = platformsOf.get(key) ?? { codes: [], categories: {} };
+      const entry = platformsOf.get(key) ?? { codes: [], categories: {}, posted: {} };
       entry.codes.push(p.platform_code);
       if (p.category) entry.categories[p.platform_code] = p.category;
+      if (p.posted_on) entry.posted[p.platform_code] = isoDate(p.posted_on)!;
       platformsOf.set(key, entry);
     }
     const photosOf = new Map<string, string[]>();
@@ -428,6 +444,7 @@ async function listAll() {
           groupId: low(i.group_id),
           platforms: plat?.codes ?? [],
           categories: plat?.categories ?? {},
+          posted: plat?.posted ?? {},
           priceListed: i.price_listed,
           priceSold: i.price_sold,
           status: i.status,

@@ -16,6 +16,7 @@ function item(over: Partial<Item>): Item {
     groupId: null,
     platforms: [],
     categories: {},
+    posted: {},
     priceListed: 100,
     priceSold: null,
     status: 'active',

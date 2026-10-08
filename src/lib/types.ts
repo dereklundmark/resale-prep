@@ -34,6 +34,11 @@ export interface Item {
   groupId: string | null;
   platforms: Platform[];
   categories: Partial<Record<Platform, string>>;
+  /**
+   * Day the listing went live on each platform. A platform in `platforms`
+   * but missing here is picked but not posted yet (the ACTIVE checklist).
+   */
+  posted: Partial<Record<Platform, IsoDate>>;
   priceListed: number | null;
   priceSold: number | null;
   status: ItemStatus;

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useStore } from '../data/store';
 import { STALE_DAYS } from '../lib/constants';
 import { today } from '../lib/dates';
-import { dayMonthYear, monthYear } from '../lib/format';
+import { dayMonth, dayMonthYear, monthYear } from '../lib/format';
 import { daysListed } from '../lib/stats';
 import { EditItemForm } from './EditItemForm';
 import { PhotoImg } from './PhotoImg';
@@ -15,11 +15,13 @@ interface Props {
 }
 
 export function DetailSheet({ itemId, onClose, onMarkSold, onToast }: Props) {
-  const { items, groups, deleteItem, money, platform, conditionLabel } = useStore();
+  const { items, groups, deleteItem, setPosted, money, platform, conditionLabel } = useStore();
   const item = items.find((i) => i.id === itemId);
   const [editing, setEditing] = useState(false);
   // Delete needs two taps: the first turns the link into "Tap again to delete".
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // One tick saves at a time, so two quick taps can't overwrite each other.
+  const [ticking, setTicking] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -55,6 +57,18 @@ export function DetailSheet({ itemId, onClose, onMarkSold, onToast }: Props) {
         ? 'var(--stale)'
         : 'var(--grey)'
       : 'var(--sold)';
+
+  const tick = async (p: string) => {
+    if (ticking) return;
+    setTicking(true);
+    try {
+      await setPosted(item.id, p, !item.posted[p]);
+    } catch {
+      onToast("Couldn't save. Try again.");
+    } finally {
+      setTicking(false);
+    }
+  };
 
   const remove = async () => {
     if (!confirmDelete) {
@@ -113,7 +127,33 @@ export function DetailSheet({ itemId, onClose, onMarkSold, onToast }: Props) {
                   </div>
                 ))}
               </div>
-              {item.platforms.length > 0 && (
+              {active && item.platforms.length > 0 && (
+                <div className="stack8" style={{ gap: 4 }}>
+                  <span className="label">Posted</span>
+                  <div className="post-list">
+                    {item.platforms.map((p) => {
+                      const on = item.posted[p];
+                      return (
+                        <button
+                          key={p}
+                          type="button"
+                          className={`post-row ${on ? 'on' : ''}`}
+                          role="checkbox"
+                          aria-checked={!!on}
+                          aria-busy={ticking}
+                          onClick={() => void tick(p)}
+                        >
+                          <span className="post-stripe" style={{ background: platform(p).colorStrong }} />
+                          <span className="post-box">{on ? '✓' : ''}</span>
+                          <span className="post-name">{platform(p).name}</span>
+                          <span className="post-when">{on ? `live · ${dayMonth(on)}` : 'not posted yet'}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {!active && item.platforms.length > 0 && (
                 <div className="pills">
                   {item.platforms.map((p) => (
                     <span key={p} className="pill" style={{ background: platform(p).colorTint, color: platform(p).colorText }}>

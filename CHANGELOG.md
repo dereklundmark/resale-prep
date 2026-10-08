@@ -4,6 +4,28 @@ Versions follow [semantic versioning](https://semver.org): **MAJOR.MINOR.PATCH**
 patch for fixes, minor for new features, major for big changes. The version shows in the
 footer of the TOTAL screen, next to the commit it was built from.
 
+## 1.3.0 (2026-10-08)
+
+- **Posted checklist.** Picking Tradera and Blocket on NEW now means "to post there", not
+  "live". Open an item on ACTIVE and tick each platform once the listing is actually live
+  (the tick saves the day). On the ACTIVE list a solid stripe is live, an outline stripe is
+  still to post, and the row says "to post: Blocket".
+- **Skip Gemini.** NEW has a "Skip Gemini · write it yourself" link that goes straight to
+  the listing form (title from "What is it?", your own description, categories and price),
+  so you can save to ACTIVE without photos or waiting for Gemini. Generate is still there.
+- **Laptop layout.** On a laptop or desktop (mouse and a wide window) the app is wider: NEW
+  has the photo beside the fields, ACTIVE and SOLD show two columns, and an item opens as a
+  centred window with its photos beside the details. The iPhone layout is unchanged.
+- **Easier swipe to mark sold.** iOS used to cancel the swipe whenever the thumb moved a
+  little up or down at the start, so most swipes turned into a tiny scroll. A touch that
+  moves more sideways than up/down is now always a swipe, and the row follows your finger
+  before snapping open. Up/down still scrolls the list. On a laptop you can drag a row with
+  the mouse.
+- Fix: a typed category with no Gemini suggestions no longer disappears after one letter.
+- Fix: the hidden "Mark sold" button no longer shows as a thin line on the edge of rows.
+- Database: `item_platforms.posted_on` (`sql/007_posted.sql`). Items listed before this
+  count as posted on the day they were listed. **Run the script before deploying.**
+
 ## 1.2.1 (2026-10-07)
 
 - TOTAL hides the Ungrouped row when nothing is ungrouped.

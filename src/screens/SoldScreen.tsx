@@ -116,26 +116,28 @@ export function SoldScreen({ photos, filter, onFilter, onOpen }: Props) {
 
       <GroupFilterRow className="filters-sold" value={filter} onChange={onFilter} />
       {rows.length === 0 && <div className="empty">Nothing sold yet.</div>}
-      {rows.map((item) => {
-        const dts = daysToSell(item);
-        return (
-          <button key={item.id} type="button" className="sold-row" onClick={() => onOpen(item.id)}>
-            {photos && (
-              <span className="sold-thumb">
-                <PhotoImg id={item.photoIds[0]} variant="thumb" />
-              </span>
-            )}
-            <div className="left">
-              <span className="t">{item.title}</span>
-              <span className="meta">
-                {groupName(item.groupId)} · {item.dateSold ? monthYear(item.dateSold) : '—'} ·{' '}
-                {dts === null ? 'backfilled' : `${dts} days to sell`}
-              </span>
-            </div>
-            <span className="row-price">{money(soldPrice(item), item.currencyCode)}</span>
-          </button>
-        );
-      })}
+      <div className="sold-list">
+        {rows.map((item) => {
+          const dts = daysToSell(item);
+          return (
+            <button key={item.id} type="button" className="sold-row" onClick={() => onOpen(item.id)}>
+              {photos && (
+                <span className="sold-thumb">
+                  <PhotoImg id={item.photoIds[0]} variant="thumb" />
+                </span>
+              )}
+              <div className="left">
+                <span className="t">{item.title}</span>
+                <span className="meta">
+                  {groupName(item.groupId)} · {item.dateSold ? monthYear(item.dateSold) : '—'} ·{' '}
+                  {dts === null ? 'backfilled' : `${dts} days to sell`}
+                </span>
+              </div>
+              <span className="row-price">{money(soldPrice(item), item.currencyCode)}</span>
+            </button>
+          );
+        })}
+      </div>
       <div className="footer-total">
         <span className="label">
           {filterLabel(filter, groups)} · {rows.length} items

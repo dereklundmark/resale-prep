@@ -188,6 +188,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ...marketFields(),
           ...l,
           groupId: existingGroup(l.groupId),
+          posted: {}, // ticked on ACTIVE once it's actually live
           photoIds: photos.map((p) => p.id),
           priceSold: null,
           status: 'active',
@@ -208,6 +209,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (item) await put({ ...item, status: 'sold', priceSold, dateSold });
       },
 
+      async setPosted(id, platform, posted) {
+        const item = items.find((i) => i.id === id);
+        if (!item) return;
+        const next = { ...item.posted };
+        if (posted) next[platform] = today();
+        else delete next[platform];
+        await put({ ...item, posted: next });
+      },
+
       async addPastSale({ title, priceSold, month, groupId }: PastSale) {
         const item: Item = {
           id: newId(),
@@ -218,6 +228,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           groupId: existingGroup(groupId),
           platforms: [],
           categories: {},
+          posted: {},
           priceListed: null,
           priceSold,
           status: 'sold',

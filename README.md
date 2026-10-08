@@ -64,7 +64,7 @@ Semantic versioning (MAJOR.MINOR.PATCH), bumped in the same commit as each chang
 
 | Path | What |
 |---|---|
-| `sql/` | Database scripts: tables (001), app login (002), starting data (003), backfills (004), funds (005) |
+| `sql/` | Database scripts: tables (001), app login (002), starting data (003), backfills (004), funds (005), Facebook categories (006), posted ticks (007) |
 | `api/src/functions/` | The API: `config`, `items` (+ groups, purchases), `photos`, `generate` |
 | `api/src/lib/db.ts` | SQL connection; retries while the paused database wakes up |
 | `src/lib/types.ts` | Data model (mirrors the SQL tables and the API's JSON) |
@@ -97,5 +97,9 @@ Where the app deliberately differs from the v2 spec:
 - Deleting a group with items or purchases asks where to move them (v3 moved items to
   Ungrouped and deleted purchases without asking), and TOTAL keeps hiding empty Sold /
   For sale sections.
+- Picking a platform on NEW doesn't mean it's live: each platform has its own "posted" tick
+  on the item (ACTIVE), and NEW can skip Gemini and save a listing you wrote yourself.
+- On a laptop (mouse + window at least 1000 px wide) the layout widens to two columns; the
+  phone layout is the design as specified.
 - Backfilled sales are stored as the 1st of their month (`YYYY-MM-01`, with `isBackfill`)
   rather than as `YYYY-MM`; the UI shows them as months.

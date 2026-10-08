@@ -87,6 +87,8 @@ export interface Store {
   deletePurchase(id: string): Promise<void>;
   saveListing(listing: NewListing): Promise<Item>;
   markSold(id: string, priceSold: number, dateSold: IsoDate): Promise<void>;
+  /** Ticks (posted today) or unticks a platform on the ACTIVE checklist. */
+  setPosted(id: string, platform: Platform, posted: boolean): Promise<void>;
   addPastSale(sale: PastSale): Promise<void>;
   /** Saves an edited item (same id). */
   updateItem(item: Item): Promise<void>;
