@@ -15,13 +15,14 @@ interface Props {
 }
 
 export function DetailSheet({ itemId, onClose, onMarkSold, onToast }: Props) {
-  const { items, groups, deleteItem, setPosted, money, platform, conditionLabel } = useStore();
+  const { items, groups, deleteItem, setPosted, setPlatform, activePlatforms, money, platform, conditionLabel } =
+    useStore();
   const item = items.find((i) => i.id === itemId);
   const [editing, setEditing] = useState(false);
   // Delete needs two taps: the first turns the link into "Tap again to delete".
   const [confirmDelete, setConfirmDelete] = useState(false);
-  // One tick saves at a time, so two quick taps can't overwrite each other.
-  const [ticking, setTicking] = useState(false);
+  // Removing a platform needs two taps too: the first turns "Remove" into "Sure?".
+  const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -58,17 +59,25 @@ export function DetailSheet({ itemId, onClose, onMarkSold, onToast }: Props) {
         : 'var(--grey)'
       : 'var(--sold)';
 
-  const tick = async (p: string) => {
-    if (ticking) return;
-    setTicking(true);
-    try {
-      await setPosted(item.id, p, !item.posted[p]);
-    } catch {
-      onToast("Couldn't save. Try again.");
-    } finally {
-      setTicking(false);
-    }
+  // Ticks and platform changes show at once and save in the background.
+  const saving = (p: Promise<void>) => void p.catch(() => onToast("Couldn't save. Try again."));
+  const tick = (p: string) => {
+    setConfirmRemove(null);
+    saving(setPosted(item.id, p, !item.posted[p]));
   };
+  const removePlatform = (p: string) => {
+    if (confirmRemove !== p) {
+      setConfirmRemove(p);
+      return;
+    }
+    setConfirmRemove(null);
+    saving(setPlatform(item.id, p, false));
+  };
+  const addPlatform = (p: string) => {
+    setConfirmRemove(null);
+    saving(setPlatform(item.id, p, true));
+  };
+  const notListed = activePlatforms.filter((p) => !item.platforms.includes(p.code));
 
   const remove = async () => {
     if (!confirmDelete) {
@@ -127,29 +136,45 @@ export function DetailSheet({ itemId, onClose, onMarkSold, onToast }: Props) {
                   </div>
                 ))}
               </div>
-              {active && item.platforms.length > 0 && (
+              {active && (
                 <div className="stack8" style={{ gap: 4 }}>
                   <span className="label">Posted</span>
                   <div className="post-list">
                     {item.platforms.map((p) => {
                       const on = item.posted[p];
                       return (
-                        <button
-                          key={p}
-                          type="button"
-                          className={`post-row ${on ? 'on' : ''}`}
-                          role="checkbox"
-                          aria-checked={!!on}
-                          aria-busy={ticking}
-                          onClick={() => void tick(p)}
-                        >
-                          <span className="post-stripe" style={{ background: platform(p).colorStrong }} />
-                          <span className="post-box">{on ? '✓' : ''}</span>
-                          <span className="post-name">{platform(p).name}</span>
-                          <span className="post-when">{on ? `live · ${dayMonth(on)}` : 'not posted yet'}</span>
-                        </button>
+                        <div key={p} className={`post-row ${on ? 'on' : ''}`}>
+                          <button
+                            type="button"
+                            className="post-check"
+                            role="checkbox"
+                            aria-checked={!!on}
+                            onClick={() => tick(p)}
+                          >
+                            <span className="post-stripe" style={{ background: platform(p).colorStrong }} />
+                            <span className="post-box">{on ? '✓' : ''}</span>
+                            <span className="post-name">{platform(p).name}</span>
+                            <span className="post-when">{on ? `live · ${dayMonth(on)}` : 'not posted yet'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            className={`post-remove ${confirmRemove === p ? 'sure' : ''}`}
+                            aria-label={confirmRemove === p ? `Tap again to remove ${platform(p).name}` : `Remove ${platform(p).name}`}
+                            onClick={() => removePlatform(p)}
+                          >
+                            {confirmRemove === p ? 'Sure?' : 'Remove'}
+                          </button>
+                        </div>
                       );
                     })}
+                    {/* Platforms it isn't listed on: tap to add. */}
+                    {notListed.map((p) => (
+                      <button key={p.code} type="button" className="post-add" onClick={() => addPlatform(p.code)}>
+                        <span className="post-stripe" style={{ background: p.colorStrong }} />
+                        <span className="post-name">+ {p.name}</span>
+                        <span className="post-when">not listed</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}

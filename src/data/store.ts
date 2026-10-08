@@ -87,8 +87,13 @@ export interface Store {
   deletePurchase(id: string): Promise<void>;
   saveListing(listing: NewListing): Promise<Item>;
   markSold(id: string, priceSold: number, dateSold: IsoDate): Promise<void>;
-  /** Ticks (posted today) or unticks a platform on the ACTIVE checklist. */
+  /**
+   * Ticks (posted today) or unticks a platform on the ACTIVE checklist.
+   * Shows at once and saves in the background; a failed save reloads.
+   */
   setPosted(id: string, platform: Platform, posted: boolean): Promise<void>;
+  /** Adds a platform to an item, or removes it (with its category and tick). Saves like setPosted. */
+  setPlatform(id: string, platform: Platform, listed: boolean): Promise<void>;
   addPastSale(sale: PastSale): Promise<void>;
   /** Saves an edited item (same id). */
   updateItem(item: Item): Promise<void>;

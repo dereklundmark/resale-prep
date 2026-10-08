@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { UNKNOWN_PLATFORM_COLORS } from '../lib/constants';
 import { today } from '../lib/dates';
 import { money } from '../lib/format';
@@ -39,6 +39,9 @@ async function photoPayload(id: string, full: Blob, thumb: Blob) {
 
 // Every write goes to the API (Azure SQL) first, and only then into React
 // state, so the screen never shows something that wasn't actually saved.
+// The exception is quick checklist taps (posted ticks, adding or removing a
+// platform): they show at once and save in the background, one at a time and
+// in order; if a save fails, the app reloads from the database.
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -47,6 +50,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<Item[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
+  // Latest items for the instant edits (a quick second tap must build on the
+  // first even before React re-renders), and the queue their saves wait in.
+  const itemsRef = useRef<Item[]>([]);
+  const saveQueue = useRef<Promise<unknown>>(Promise.resolve());
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
 
   const apply = useCallback((d: Loaded) => {
     setCatalog(d.catalog);
@@ -79,8 +89,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     // An edit never changes photos, so keep the photo list we already have
     // even if a reply ever comes back without it.
     const put = async (item: Item) => {
+      await saveQueue.current.catch(() => undefined); // after any instant edit still saving
       const saved = await api.put<Item>(`/api/items/${item.id}`, item);
       upsert({ ...saved, photoIds: saved.photoIds?.length ? saved.photoIds : item.photoIds });
+    };
+    /** Shows the change at once, then saves it after any earlier instant edit. */
+    const editNow = (id: string, change: (item: Item) => Item): Promise<void> => {
+      const current = itemsRef.current.find((i) => i.id === id);
+      if (!current) return Promise.resolve();
+      const next = change(current);
+      itemsRef.current = itemsRef.current.map((i) => (i.id === id ? next : i));
+      setItems((prev) => prev.map((i) => (i.id === id ? next : i)));
+      const job = saveQueue.current.catch(() => undefined).then(() => api.put<Item>(`/api/items/${id}`, next));
+      saveQueue.current = job;
+      return job.then(
+        () => undefined,
+        (e: unknown) => {
+          void reload(); // put the screen back in line with the database
+          throw e;
+        },
+      );
     };
     // A group can be deleted while a form still points at it; save such
     // items as Ungrouped rather than failing on the database's foreign key.
@@ -205,17 +233,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
 
       async markSold(id, priceSold, dateSold) {
-        const item = items.find((i) => i.id === id);
+        const item = itemsRef.current.find((i) => i.id === id);
         if (item) await put({ ...item, status: 'sold', priceSold, dateSold });
       },
 
-      async setPosted(id, platform, posted) {
-        const item = items.find((i) => i.id === id);
-        if (!item) return;
-        const next = { ...item.posted };
-        if (posted) next[platform] = today();
-        else delete next[platform];
-        await put({ ...item, posted: next });
+      setPosted(id, platform, posted) {
+        return editNow(id, (item) => {
+          const next = { ...item.posted };
+          if (posted) next[platform] = today();
+          else delete next[platform];
+          return { ...item, posted: next };
+        });
+      },
+
+      setPlatform(id, platform, listed) {
+        return editNow(id, (item) => {
+          const posted = { ...item.posted };
+          const categories = { ...item.categories };
+          let platforms = item.platforms.filter((p) => p !== platform);
+          if (listed) {
+            const order = (p: string) => byCode.get(p)?.sortOrder ?? 99;
+            platforms = [...platforms, platform].sort((a, b) => order(a) - order(b));
+          } else {
+            delete posted[platform];
+            delete categories[platform];
+          }
+          return { ...item, platforms, posted, categories };
+        });
       },
 
       async addPastSale({ title, priceSold, month, groupId }: PastSale) {

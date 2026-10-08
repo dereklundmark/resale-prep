@@ -4,6 +4,15 @@ Versions follow [semantic versioning](https://semver.org): **MAJOR.MINOR.PATCH**
 patch for fixes, minor for new features, major for big changes. The version shows in the
 footer of the TOTAL screen, next to the commit it was built from.
 
+## 1.4.0 (2026-10-08)
+
+- **Add or remove a platform** on an item for sale: in its Posted list, "Remove" (tap twice:
+  "Sure?") drops a platform along with its category and tick, and a dashed "+ Facebook" row
+  adds one that isn't listed yet.
+- **Ticks are instant.** Posted ticks and platform changes show at once and save in the
+  background, in order, instead of waiting about a second for the database each time. If a
+  save fails, the app says so and reloads from the database.
+
 ## 1.3.0 (2026-10-08)
 
 - **Posted checklist.** Picking Tradera and Blocket on NEW now means "to post there", not

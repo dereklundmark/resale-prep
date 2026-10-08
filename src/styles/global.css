@@ -1570,20 +1570,51 @@ select {
   display: flex;
   flex-direction: column;
 }
-.post-row {
+.post-row,
+.post-add {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 48px;
+  border-top: 1px solid var(--rule);
+}
+.post-list > :last-child {
+  border-bottom: 1px solid var(--rule);
+}
+/* The tick: everything but the Remove link. */
+.post-check {
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
   display: flex;
   align-items: center;
   gap: 12px;
-  width: 100%;
-  min-height: 48px;
+  padding-right: 12px;
+}
+.post-remove {
+  flex: none;
+  align-self: stretch;
+  padding: 0 2px 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: underline;
+  color: var(--grey);
+}
+.post-remove.sure {
+  color: var(--stale);
+}
+/* A platform the item isn't listed on: dashed, faded, tap to add. */
+.post-add {
+  gap: 12px;
   padding-right: 2px;
-  border-top: 1px solid var(--rule);
+  border-top-style: dashed;
+  color: var(--grey);
 }
-.post-row:last-child {
-  border-bottom: 1px solid var(--rule);
+.post-add .post-stripe {
+  opacity: 0.35;
 }
-.post-row[aria-busy='true'] {
-  cursor: progress;
+.post-add .post-when {
+  color: var(--inactive-tab);
 }
 .post-stripe {
   align-self: stretch;
