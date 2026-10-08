@@ -53,6 +53,32 @@ export default defineConfig({
         inlineWorkboxRuntime: true,
         // Never answer API calls or the login pages from the offline cache.
         navigateFallbackDenylist: [/^\/api\//, /^\/\.auth\//, /^\/403\.html$/],
+        // Photos never change for a given id, so keep them in the service
+        // worker's cache and never ask the server again. iOS throws away the
+        // browser's normal cache when it closes the home-screen app, so the
+        // "immutable" header alone made every photo reload on each open.
+        // Only real photos (200) are kept, never a login redirect. Small
+        // thumbnails first, since a full-size URL would also match the second rule.
+        runtimeCaching: [
+          {
+            urlPattern: /\/api\/photos\/[^/?]+\?size=thumb$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'photo-thumbs',
+              expiration: { maxEntries: 3000, purgeOnQuotaError: true }, // ~10 KB each
+              cacheableResponse: { statuses: [200] },
+            },
+          },
+          {
+            urlPattern: /\/api\/photos\//,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'photos-full',
+              expiration: { maxEntries: 400, purgeOnQuotaError: true }, // ~150 KB each
+              cacheableResponse: { statuses: [200] },
+            },
+          },
+        ],
       },
     }),
   ],

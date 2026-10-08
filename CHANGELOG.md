@@ -4,6 +4,15 @@ Versions follow [semantic versioning](https://semver.org): **MAJOR.MINOR.PATCH**
 patch for fixes, minor for new features, major for big changes. The version shows in the
 footer of the TOTAL screen, next to the commit it was built from.
 
+## 1.4.1 (2026-10-08)
+
+- **Photos load from the phone.** Photos are now kept in the app's offline cache (service
+  worker) once loaded, so they don't come from the server again. iOS throws away the normal
+  browser cache when it closes the home-screen app, so before this every photo was fetched
+  again through the API and the database on each open.
+- List thumbnails load in the background right after the app opens, so the Photo views
+  are ready when you switch to them.
+
 ## 1.4.0 (2026-10-08)
 
 - **Add or remove a platform** on an item for sale: in its Posted list, "Remove" (tap twice:

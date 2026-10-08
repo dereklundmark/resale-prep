@@ -4,7 +4,7 @@ import { today } from '../lib/dates';
 import { money } from '../lib/format';
 import { newId } from '../lib/id';
 import type { Catalog, Group, Item, Market, PlatformInfo, Purchase } from '../lib/types';
-import { ApiError, api, blobToBase64, onWaking } from './api';
+import { ApiError, api, blobToBase64, onWaking, warmThumbs } from './api';
 import { StoreContext, type ImportBatch, type NewListing, type NewPurchase, type PastSale, type Store } from './store';
 
 const EMPTY_CATALOG: Catalog = { markets: [], platforms: [], conditions: [] };
@@ -72,7 +72,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     onWaking(setWaking);
-    void fetchAll().then(apply, fail);
+    void fetchAll().then((d) => {
+      apply(d);
+      // Each list row shows the first photo's thumbnail; have them ready.
+      void warmThumbs(d.items.flatMap((i) => i.photoIds.slice(0, 1)));
+    }, fail);
   }, [apply, fail]);
 
   const reload = useCallback(() => {

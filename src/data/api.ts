@@ -89,3 +89,18 @@ export function blobToBase64(b: Blob): Promise<string> {
 export function photoUrl(id: string, size: 'full' | 'thumb'): string {
   return `/api/photos/${id}?size=${size}`;
 }
+
+/**
+ * Loads thumbnails in the background, a few at a time, so the Photo views
+ * show them at once. The service worker keeps them, so after the first time
+ * this costs nothing (they come from its cache, not the server).
+ */
+export async function warmThumbs(ids: string[]): Promise<void> {
+  const queue = [...ids];
+  const worker = async () => {
+    for (let id = queue.shift(); id; id = queue.shift()) {
+      await fetch(photoUrl(id, 'thumb')).catch(() => undefined);
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
+}
